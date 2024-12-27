@@ -6,6 +6,13 @@ import { initLlm } from "./util/llm";
 
 initLlm();
 
+const __tauriWindow = window as {
+    enableCORSFetch?: (v: boolean) => void;
+};
+if (__tauriWindow?.enableCORSFetch) {
+    __tauriWindow.enableCORSFetch(true);
+}
+
 // // Setup CSS Variable: --scrollbar-width
 // {
 //     let scrollbarWidth = 0;
