@@ -5,10 +5,19 @@ import { providers } from "./ModelProvidersContext";
 const DEFAULT_TEMPERATURE = 0.5
 const DEFAULT_MAX_TOKENS = 1024
 
-const initialModel = JSON.parse(localStorage.getItem("model") || "") || null
-const initialProvider = JSON.parse(localStorage.getItem("provider") || "") || null
-const initialTemperature = Number.parseFloat(localStorage.getItem("temperature") || "") || DEFAULT_TEMPERATURE
-const initialMaxTokens = Number.parseInt(localStorage.getItem("maxTokens") || "") || DEFAULT_MAX_TOKENS
+const getLocalstorageJsonOrNull = (key: string) => {
+    try {
+        return JSON.parse(localStorage.getItem(key) || "") || null
+    }
+    catch (_) {
+        return null
+    }
+}
+
+const initialModel = getLocalstorageJsonOrNull("model")
+const initialProvider = getLocalstorageJsonOrNull("provider")
+const initialTemperature = Number.parseFloat(getLocalstorageJsonOrNull("temperature")) || DEFAULT_TEMPERATURE
+const initialMaxTokens = Number.parseInt(getLocalstorageJsonOrNull("maxTokens")) || DEFAULT_MAX_TOKENS
 
 const [model, setModel] = createSignal<Model | null>(initialModel);
 const [provider, setProvider] = createSignal<Provider | null>(initialProvider);

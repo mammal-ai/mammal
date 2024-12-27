@@ -22,7 +22,7 @@ const Navbar = (props: NavbarProps) => {
             let newTitle = "Unkown Title"
             try {
                 const storedNewTitle = await db.select<{ title: string }>("SELECT title FROM thread_titles WHERE id = $1", [id])
-                newTitle = storedNewTitle[0].title
+                newTitle = storedNewTitle[0]?.title || newTitle
             }
             catch (e) {
                 console.error(e)
