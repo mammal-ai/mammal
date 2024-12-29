@@ -196,19 +196,17 @@ const MarkdownBody = (props: MarkdownBodyProps) => {
     })
 
     return (
-        <>
-            <div ref={$mdBody} class={"relative px-6 py-4 rounded-lg " + props.class} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
-                <div class={`text-lg markdown-body`} innerHTML={props.innerHTML} />
-                <MessageButtons show={isHovered()} align={props.message?.data.role === "assistant" ? "LEFT" : "RIGHT"}>
-                    <Show when={props.message?.data.role === "user"}>
-                        <UserMessageButtons treeId={props.message?.path} onEdit={props.onEdit} />
-                    </Show>
-                    <Show when={props.message?.data.role === "assistant" && props.message?.data.metadata?.model}>
-                        <AssistantMessageButtons onRegenerate={props.onRegenerate} treeId={props.message?.path} model={props.message?.data.metadata?.model!} />
-                    </Show>
-                </MessageButtons>
-            </div>
-        </>
+        <div ref={$mdBody} class={"relative px-6 py-4 rounded-lg " + props.class} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
+            <div class={`text-lg markdown-body`} innerHTML={props.innerHTML} />
+            <MessageButtons show={isHovered()} align={props.message?.data.role === "assistant" ? "LEFT" : "RIGHT"}>
+                <Show when={props.message?.data.role === "user"}>
+                    <UserMessageButtons treeId={props.message?.path} onEdit={props.onEdit} />
+                </Show>
+                <Show when={props.message?.data.role === "assistant" && props.message?.data.metadata?.model}>
+                    <AssistantMessageButtons onRegenerate={props.onRegenerate} treeId={props.message?.path} model={props.message?.data.metadata?.model!} />
+                </Show>
+            </MessageButtons>
+        </div>
     )
 }
 

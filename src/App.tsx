@@ -23,8 +23,6 @@ const sidebarItems = [{
 function App() {
   const [activeItem, setActiveItem] = createSignal(0);
 
-  // <ModelProviderProvider>
-  // {/* <ModelSettingsProvider> */ }
   return (
     <main class="flex flex-row w-screen h-screen">
       <IconSidebar items={sidebarItems} activeItem={activeItem} setActiveItem={setActiveItem} />
@@ -40,8 +38,6 @@ function App() {
       </div>
     </main>
   );
-  // {/* </ModelSettingsProvider> */ }
-  // // </ModelProviderProvider>
 }
 
 export default App;

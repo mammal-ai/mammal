@@ -8,7 +8,7 @@ import {
 import { TextField } from "./TextField";
 import { Button } from "../shadcn/components/Button";
 import { PlusCircle, X } from "lucide-solid";
-import { createSignal, useContext } from "solid-js";
+import { createSignal } from "solid-js";
 import { providers, addProvider, addModel, modelTypeFromString } from "../state/ModelProvidersContext";
 import knownProviders from "../assets/providers.json";
 
