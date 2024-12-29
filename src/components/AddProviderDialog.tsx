@@ -21,6 +21,14 @@ const getEndpointByProvider = (provider: string) => {
     return knownProvider?.endpoint;
 }
 
+// // To check for models, something like:
+// const r = await fetch(p?.endpoint + "/models", {
+//     headers: {
+//         "Authorization": `Bearer ${apiKey()}`
+//     }
+// })
+// const x = r.json()
+
 type AddProviderFormProps = {
     show: boolean;
     onHide: () => any;
@@ -50,6 +58,7 @@ const AddProviderDialog = (props: AddProviderFormProps) => {
             console.error("Failed to add provider");
             return;
         }
+        setApiKey("")
 
         p?.models.forEach(m => {
             addModel({
