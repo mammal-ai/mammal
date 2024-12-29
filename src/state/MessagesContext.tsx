@@ -1,4 +1,3 @@
-
 import db from "../store/db";
 import MPTree from "../util/tree/MPTree";
 import MPTreeNode, { MPTreeNodeWithChildren } from "../util/tree/MPTreeNode";
