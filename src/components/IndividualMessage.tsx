@@ -1,4 +1,4 @@
-import { Bot, ChevronDown, ChevronLeft, ChevronRight, Edit, RefreshCw, Trash2 } from 'lucide-solid';
+import { Bot, ChevronDown, ChevronLeft, ChevronRight, Edit, RefreshCw, ShieldPlus, Trash2 } from 'lucide-solid';
 import hljs from 'highlight.js'
 import { Remarkable } from 'remarkable';
 import { createResource, createSignal, JSX, onMount, Show, Suspense } from 'solid-js';
@@ -121,13 +121,13 @@ const DirectionButtons = (props: DirectionButtonsProps) => {
     }
 
     return (<>
-        <button class='hover:text-gray-600 disabled:text-gray-200' disabled={index() === 0} onClick={goToSibling(false)}>
+        <button class='active:scale-90 hover:text-gray-600 disabled:text-gray-200' disabled={index() === 0} onClick={goToSibling(false)}>
             <ChevronLeft class='w-4 h-4' />
         </button>
         <span>
             {position()}
         </span>
-        <button class='hover:text-gray-600 disabled:text-gray-200' disabled={index() === siblingCount()} onClick={goToSibling(true)}>
+        <button class='active:scale-90 hover:text-gray-600 disabled:text-gray-200' disabled={index() === siblingCount()} onClick={goToSibling(true)}>
             <ChevronRight class='w-4 h-4' />
         </button>
     </>)
@@ -141,15 +141,15 @@ type AssistantMessageButtonsProps = {
 const AssistantMessageButtons = (props: AssistantMessageButtonsProps) => {
     return (
         <>
-            <button class='hover:text-gray-600 flex flex-row items-center whitespace-nowrap overflow-hidden ellipsis'>
+            <button class='active:scale-90 hover:text-gray-600 flex flex-row items-center whitespace-nowrap overflow-hidden ellipsis'>
                 {props.model}
                 <ChevronDown class='w-4 h-4' />
             </button>
             {/* TODO: only show if message has siblings (i.e., only allow deleting this message if there are other replies to the parent, because how else would you trigger a re-generate?) */}
-            <button class='hover:text-red-600' onClick={tryDelete(props?.treeId || "")}>
+            <button class='active:scale-90 hover:text-red-600' onClick={tryDelete(props?.treeId || "")}>
                 <Trash2 class='w-4 h-4' />
             </button>
-            <button class='hover:text-gray-600' onClick={() => props.treeId && props.onRegenerate(props.treeId)}>
+            <button class='active:scale-90 hover:text-gray-600' onClick={() => props.treeId && props.onRegenerate(props.treeId)}>
                 <RefreshCw class='w-4 h-4' />
             </button>
             <DirectionButtons treeId={props.treeId} />
@@ -165,10 +165,18 @@ type UserMessageButtonsProps = {
 const UserMessageButtons = (props: UserMessageButtonsProps) => {
     return (
         <>
-            <button class='hover:text-red-600' onClick={tryDelete(props?.treeId || "")}>
+            <button class='active:scale-90 hover:text-green-600' onClick={async () => {
+                const sure = await confirm("Create benchmark from message")
+                if (!sure) {
+                    return
+                }
+            }}>
+                <ShieldPlus class='w-4 h-4' />
+            </button>
+            <button class='active:scale-90 hover:text-red-600' onClick={tryDelete(props?.treeId || "")}>
                 <Trash2 class='w-4 h-4' />
             </button>
-            <button class='hover:text-gray-600' onClick={props.onEdit}>
+            <button class='active:scale-90 hover:text-gray-600' onClick={props.onEdit}>
                 <Edit class='w-4 h-4' />
             </button>
             <DirectionButtons treeId={props.treeId} />

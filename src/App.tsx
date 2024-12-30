@@ -1,9 +1,11 @@
 import { createSignal } from "solid-js";
 import IconSidebar from "./components/IconSidebar";
-import { Bot, ChartColumn, MessageSquareText } from "lucide-solid";
+import { Bot, ChartColumn, Folders, HardDriveUpload, MessageSquareText } from "lucide-solid";
 import "./App.css";
 import MessagesView from "./views/MessagesView";
 import ModelsView from "./views/ModelsView";
+import OrganizerView from "./views/OrganizerView";
+import DeploymentsView from "./views/DeploymentsView";
 import BenchmarksView from "./views/BenchmarksView";
 import { Page } from "./components/Page";
 // import { ModelProviderProvider } from "./state/ModelProviderContext";
@@ -13,8 +15,14 @@ const sidebarItems = [{
   title: "Conversations",
   icon: MessageSquareText
 }, {
+  title: "Organize",
+  icon: Folders
+}, {
   title: "Benchmarks",
   icon: ChartColumn
+}, {
+  title: "Deployments",
+  icon: HardDriveUpload
 }, {
   title: "Models",
   icon: Bot
@@ -32,8 +40,10 @@ function App() {
             In particular, I don't like the MessageList Sidebar sliding into place.
             So this feels more appropriate */}
         <Page isOpen={activeItem() !== 0}>
-          <BenchmarksView isOpen={activeItem() === 1} />
-          <ModelsView isOpen={activeItem() === 2} />
+          <OrganizerView isOpen={activeItem() === 1} />
+          <BenchmarksView isOpen={activeItem() === 2} />
+          <DeploymentsView isOpen={activeItem() === 3} />
+          <ModelsView isOpen={activeItem() === 4} />
         </Page>
       </div>
     </main>
