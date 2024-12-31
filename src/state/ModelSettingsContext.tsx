@@ -1,18 +1,10 @@
 import { createEffect, createSignal } from "solid-js";
 import { Model, Provider } from "./ModelProvidersContext";
 import { providers } from "./ModelProvidersContext";
+import { getLocalstorageJsonOrNull } from "../util/localstorage";
 
 const DEFAULT_TEMPERATURE = 0.5
 const DEFAULT_MAX_TOKENS = 1024
-
-const getLocalstorageJsonOrNull = (key: string) => {
-    try {
-        return JSON.parse(localStorage.getItem(key) || "") || null
-    }
-    catch (_) {
-        return null
-    }
-}
 
 const initialModel = getLocalstorageJsonOrNull("model")
 const initialProvider = getLocalstorageJsonOrNull("provider")

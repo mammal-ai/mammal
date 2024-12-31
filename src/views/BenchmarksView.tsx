@@ -4,9 +4,12 @@ import { Page } from "../components/Page";
 // import { Button } from "../shadcn/components/Button";
 import { SolidApexCharts } from 'solid-apexcharts';
 import { ApexOptions } from "apexcharts";
+import { benchmarks, challenges } from "../state/BenchmarkContext";
+import { Button } from "../shadcn/components/Button";
+import { Select, SelectTrigger, SelectItem, SelectContent, SelectValue } from "../shadcn/components/Select"
+import BenchmarkDialog from "../components/BenchmarkDialog";
 
-
-const BenchmarksView = (props: { isOpen: boolean }) => {
+const Chart = () => {
     const [options] = createSignal<ApexOptions>(
         {
             chart: {
@@ -70,17 +73,58 @@ const BenchmarksView = (props: { isOpen: boolean }) => {
         data: [41, 36, 26, 45, 62]
     }]);
 
+    return <SolidApexCharts toolbar={{ show: false }} type="bar" options={options()} series={series()} />
+}
+
+const BenchmarksView = (props: { isOpen: boolean }) => {
+    const [showNewBenchmarkDialog, setShowNewBenchmarkDialog] = createSignal(false)
+
     return (
         <Page isOpen={props.isOpen}>
-            <div class="mx-auto min-w-[36rem] max-w-[48rem] p-6 mt-2">
+            <BenchmarkDialog
+                open={showNewBenchmarkDialog()}
+                onClose={() => setShowNewBenchmarkDialog(false)}
+                onSave={() => setShowNewBenchmarkDialog(false)}
+            />
+            <div class="mx-auto min-w-[36rem] max-w-[48rem] p-6 mt-2 flex flex-col space-y-4">
+                <div class="flex flex-row items-center justify-between">
+                    <span class="font-bold text-2xl">Model Benchmarks</span>
+                    <Button onClick={() => setShowNewBenchmarkDialog(true)}>New Benchmark</Button>
+                </div>
                 <div class="flex flex-col items-center bg-background rounded-md border px-6 py-4">
                     <div class="flex flex-row w-full items-center justify-between">
-                        <div class="font-bold">Model Benchmarks</div>
-                        {/* <Button>Hi</Button> */}
+                        <div class="font-bold flex-1">Model Benchmarks</div>
+                        <div>
+                            <Select
+                                class={"w-full"}
+                                options={["Top Models"]}
+                                itemComponent={props =>
+                                    <SelectItem item={props.item}>
+                                        {props.item.rawValue}
+                                    </SelectItem>
+                                }
+                                onChange={() => { }}
+                                value={"Top Models"}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue<string>>
+                                        {state => state.selectedOption()}
+                                    </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent />
+                            </Select>
+                        </div>
                     </div>
                     <div class="relative w-full">
-                        <SolidApexCharts toolbar={{ show: false }} type="bar" options={options()} series={series()} />
+                        <Chart />
                     </div>
+                </div>
+                <div class="flex flex-col items-center bg-background rounded-md border px-6 py-4">
+                    {JSON.stringify(challenges())}
+                </div>
+                <div class="flex flex-col items-center bg-background rounded-md border px-6 py-4">
+
+                    {JSON.stringify(benchmarks())}
                 </div>
             </div>
         </Page>

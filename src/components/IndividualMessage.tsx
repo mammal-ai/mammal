@@ -163,16 +163,12 @@ type UserMessageButtonsProps = {
     // model: string
     treeId?: string
     onEdit: () => void
+    onUseAsChallenge: () => void
 }
 const UserMessageButtons = (props: UserMessageButtonsProps) => {
     return (
         <>
-            <button class='active:scale-90 hover:text-green-600' onClick={async () => {
-                const sure = await confirm("Create benchmark from message")
-                if (!sure) {
-                    return
-                }
-            }}>
+            <button class='active:scale-90 hover:text-green-600' onClick={props.onUseAsChallenge}>
                 <ShieldPlus class='w-4 h-4' />
             </button>
             <button class='active:scale-90 hover:text-red-600' onClick={tryDelete(props?.treeId || "")}>
@@ -192,6 +188,7 @@ type MarkdownBodyProps = {
     message: MPTreeNode<MessageData> | null,
     onRegenerate: (treeId: string) => void
     onEdit: () => void
+    onUseAsChallenge: () => void
 }
 const MarkdownBody = (props: MarkdownBodyProps) => {
     const [isHovered, setIsHovered] = createSignal(true)
@@ -210,7 +207,7 @@ const MarkdownBody = (props: MarkdownBodyProps) => {
             <div class={`text-lg markdown-body`} innerHTML={props.innerHTML} />
             <MessageButtons show={isHovered()} align={props.message?.data.role === "assistant" ? "LEFT" : "RIGHT"}>
                 <Show when={props.message?.data.role === "user"}>
-                    <UserMessageButtons treeId={props.message?.path} onEdit={props.onEdit} />
+                    <UserMessageButtons treeId={props.message?.path} onEdit={props.onEdit} onUseAsChallenge={props.onUseAsChallenge} />
                 </Show>
                 <Show when={props.message?.data.role === "assistant" && props.message?.data.metadata?.model}>
                     <AssistantMessageButtons onRegenerate={props.onRegenerate} treeId={props.message?.path} model={props.message?.data.metadata?.model!} />
@@ -243,6 +240,7 @@ interface IndividualMessageProps {
     role: string
     onRegenerate: (treeId: string) => void
     onEdit: () => void
+    onUseAsChallenge: () => void
 }
 const IndividualMessage = (props: IndividualMessageProps) => {
     const roleClasses = () => getRole(props.role);
@@ -277,9 +275,9 @@ const IndividualMessage = (props: IndividualMessageProps) => {
                 </div>
             )}
             <Suspense fallback={
-                <MarkdownBody message={messageData() || null} class={roleClasses().message} innerHTML={md.render(props.message)} onRegenerate={props.onRegenerate} onEdit={props.onEdit} />
+                <MarkdownBody message={messageData() || null} class={roleClasses().message} innerHTML={md.render(props.message)} onRegenerate={props.onRegenerate} onEdit={props.onEdit} onUseAsChallenge={props.onUseAsChallenge} />
             }>
-                <MarkdownBody message={messageData() || null} class={roleClasses().message} innerHTML={highlightedMd() || ""} onRegenerate={props.onRegenerate} onEdit={props.onEdit} />
+                <MarkdownBody message={messageData() || null} class={roleClasses().message} innerHTML={highlightedMd() || ""} onRegenerate={props.onRegenerate} onEdit={props.onEdit} onUseAsChallenge={props.onUseAsChallenge} />
             </Suspense>
         </div>
     )
