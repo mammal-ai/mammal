@@ -24,10 +24,12 @@ const getHoveredElement = () => {
 
 const md = new Remarkable({
     typographer: true,
+    html: false,
 });
 
 const mdWithHighlights = new Remarkable({
     typographer: true,
+    html: false,
     highlight: (code: string, language: string) => {
         if (language && hljs.getLanguage(language)) {
             try {
