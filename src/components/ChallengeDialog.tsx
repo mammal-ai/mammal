@@ -13,12 +13,15 @@ import { Switch, SwitchControl, SwitchLabel, SwitchThumb } from "../shadcn/compo
 import { Select, SelectTrigger, SelectItem, SelectContent, SelectValue } from "../shadcn/components/Select"
 import { createEffect, createSignal } from "solid-js"
 
-const getMetricType = (t: "Exact" | "Contains") => {
+const getMetricType = (t: "Exact" | "Contains" | "Regex Match") => {
     if (t === "Exact") {
         return "EXACT"
     }
     else if (t === "Contains") {
         return "CONTAINS"
+    }
+    else if (t === "Regex Match") {
+        return "MATCH"
     }
     throw "Impossible..."
 }
@@ -31,7 +34,7 @@ type ChallengeDialogProps = {
 const ChallengeDialog = (props: ChallengeDialogProps) => {
     const [benchmarkTitle, setBenchmarkTitle] = createSignal("")
     const [metricCaseSensitivity, setMetricCaseSensitivity] = createSignal<boolean>(false)
-    const [metricType, setMetricType] = createSignal<"Exact" | "Contains">("Contains")
+    const [metricType, setMetricType] = createSignal<"Exact" | "Contains" | "Regex Match">("Contains")
     const [metricValue, setMetricValue] = createSignal<string>("")
 
     createEffect(() => {
@@ -97,11 +100,12 @@ const ChallengeDialog = (props: ChallengeDialogProps) => {
                                     </Switch>
                                 </div>
 
-                                <div class="flex flex-row items-end space-x-2">
-                                    <TextField value={metricValue()} setValue={setMetricValue} />
-
+                                <div class="flex flex-row items-end space-x-1">
+                                    <div class="flex-1">
+                                        <TextField value={metricValue()} setValue={setMetricValue} />
+                                    </div>
                                     <Select
-                                        options={["Exact", "Contains"]}
+                                        options={["Exact", "Contains", "Regex Match"]}
                                         itemComponent={props =>
                                             <SelectItem item={props.item}>
                                                 {props.item.rawValue}
