@@ -230,6 +230,7 @@ const getBenchmarkResults = (benchmark: Benchmark) => {
             challenge: c,
             model: m,
             text: thisResult?.resultContent,
+            // @ts-ignore
             score: Number.isFinite(thisResult?.score) ? parseFloat(thisResult.score) : "?"
         }
     }))
@@ -250,6 +251,7 @@ const BenchmarksView = (props: { isOpen: boolean }) => {
         console.log(results[0])
         const aggregation = results[0].map((m, i) => ({
             label: m.model.name,
+            // @ts-ignore
             score: results.some(m => typeof m[i].score === "string") ? 0 : avg(results.map(m => m[i].score))
         }))
         return aggregation
