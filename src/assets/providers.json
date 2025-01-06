@@ -131,7 +131,7 @@
             {
                 "name": "Gemma 7B",
                 "model": "gemma-7b-it",
-                "available": true,
+                "available": false,
                 "meta": {
                     "deprecated": true,
                     "contextWindow": 8192

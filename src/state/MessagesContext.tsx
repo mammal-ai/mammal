@@ -1,4 +1,3 @@
-
 import db from "../store/db";
 import MPTree from "../util/tree/MPTree";
 import MPTreeNode, { MPTreeNodeWithChildren } from "../util/tree/MPTreeNode";
@@ -201,7 +200,7 @@ const setThreadFor = async (treeId: string) => {
         if (node.children.length === 0) {
             return node
         }
-        return node.children.map(findLatestNode).sort((a, b) => {
+        const sortedChildren = node.children.map(findLatestNode).sort((a, b) => {
             if (!a) {
                 return 1
             }
@@ -209,10 +208,10 @@ const setThreadFor = async (treeId: string) => {
                 return -1
             }
             return a.node.data.createdAt.localeCompare(b.node.data.createdAt)
-        })[0]
+        })
+        return sortedChildren[node.children.length - 1]
     }
     const { node } = findLatestNode(tree)
-    console.log(node)
     setActiveMessage(node)
 }
 

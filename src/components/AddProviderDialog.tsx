@@ -8,7 +8,7 @@ import {
 import { TextField } from "./TextField";
 import { Button } from "../shadcn/components/Button";
 import { PlusCircle, X } from "lucide-solid";
-import { createSignal, useContext } from "solid-js";
+import { createSignal } from "solid-js";
 import { providers, addProvider, addModel, modelTypeFromString } from "../state/ModelProvidersContext";
 import knownProviders from "../assets/providers.json";
 
@@ -20,6 +20,14 @@ const getEndpointByProvider = (provider: string) => {
     const knownProvider = knownProviders.find(p => p.name === provider);
     return knownProvider?.endpoint;
 }
+
+// // To check for models, something like:
+// const r = await fetch(p?.endpoint + "/models", {
+//     headers: {
+//         "Authorization": `Bearer ${apiKey()}`
+//     }
+// })
+// const x = r.json()
 
 type AddProviderFormProps = {
     show: boolean;
@@ -50,6 +58,7 @@ const AddProviderDialog = (props: AddProviderFormProps) => {
             console.error("Failed to add provider");
             return;
         }
+        setApiKey("")
 
         p?.models.forEach(m => {
             addModel({

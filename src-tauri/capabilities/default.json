@@ -10,6 +10,7 @@
     "opener:default",
     "sql:default",
     "sql:allow-execute",
-    "cors-fetch:default"
+    "cors-fetch:default",
+    "dialog:default"
   ]
 }

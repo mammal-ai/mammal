@@ -1,8 +1,7 @@
 import { useChat } from '@ai-sdk/solid';
-import { createEffect, For } from 'solid-js';
+import { createEffect } from 'solid-js';
 import { LoadingIndicator } from '../components/LoadingIndicator';
 import ChatBox from '../components/ChatBox';
-import IndividualMessage from '../components/IndividualMessage';
 import "./MessagesView.css"
 import MessagesSidebar from '../components/MessagesSidebar';
 import Navbar from '../components/Navbar';
@@ -10,6 +9,7 @@ import { createSignal } from 'solid-js';
 import { activeMessage, getThreadEndingAt, addMessage, setActiveMessage, ChatMessageRole } from '../state/MessagesContext';
 import { getParentId } from '../util/tree/treeUtils';
 import EditDialog from '../components/EditDialog';
+import MessageThread from '../components/MessageThread';
 
 const MessagesView = () => {
     const { messages, isLoading, append, setMessages } = useChat({ api: "https://hijacked_fetch_request.com/api/chat" });
@@ -47,6 +47,26 @@ const MessagesView = () => {
             role: "user",
             annotations: [{ parentId: newId.path }]
         });
+    }
+
+    const onAttach = async (msg: string) => {
+        const newNode = await addMessage({
+            name: "User",
+            role: "user",
+            message: msg,
+            createdAt: new Date().toISOString(),
+        }, activeMessage()?.path || null)
+        if (newNode === null) {
+            console.error("Failed to add message")
+            return
+        }
+        // nearly like onSubmit, but we can't use append because that triggers a "generate"
+        setMessages([...messages(), {
+            id: newNode.path,
+            content: msg,
+            role: "user",
+            annotations: [{ parentId: newNode.path }]
+        }]);
     }
 
     const onRegenerate = async (treeId: string) => {
@@ -114,12 +134,10 @@ const MessagesView = () => {
                 <Navbar toggleSidebar={() => setOpen(!open())} onNewChat={() => setActiveMessage(null)} />
                 <div class="flex-1 flex flex-col-reverse overflow-y-auto w-full gap-4 p-4">
                     <div class='flex-1' />
-                    <ChatBox onSubmit={onSubmit} show={editId() === null} />
+                    <ChatBox onSubmit={onSubmit} onAttach={onAttach} show={editId() === null} />
                     <EditDialog treeId={editId()} onHide={() => setEditId(null)} onEdit={onEdit} />
                     <div class="flex flex-col w-full gap-4 p-4 pb-[12rem]" style={{ "z-index": 1 }}>
-                        <For each={messages()}>
-                            {(message) => <IndividualMessage id={message.id} message={message.content} role={message.role} onRegenerate={onRegenerate} onEdit={() => setEditId(message.id)} />}
-                        </For>
+                        <MessageThread messages={messages()} onRegenerate={onRegenerate} onEdit={setEditId} />
                         <LoadingIndicator isLoading={isLoading} />
                     </div>
                 </div>

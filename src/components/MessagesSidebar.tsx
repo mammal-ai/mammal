@@ -8,12 +8,13 @@ import { createSignal, For, Setter, Show } from "solid-js";
 import { TextField } from "./TextField";
 import { cascadeDelete, rootNodes, setActiveThread, isAncestorOfActiveThread } from "../state/MessagesContext";
 import { Button } from "../shadcn/components/Button";
-import { Delete, Trash2 } from "lucide-solid";
+import { Delete, Paperclip, Trash2 } from "lucide-solid";
 import dayjs from "dayjs"
 import relativeTime from "dayjs/plugin/relativeTime"
 import MessageListButton from "./MessageListButton";
 import SearchResultsList from "./SearchResultsList";
 import { getParentId } from "../util/tree/treeUtils";
+import { getFilename, messageIsAttachment } from "../util/attach";
 dayjs.extend(relativeTime);
 
 type SidebarHeaderProps = {
@@ -91,7 +92,15 @@ const MessageLink = (props: MessageLinkProps) => {
                     <span class="flex-1 font-bold whitespace-break-spaces truncate line-clamp-1 text-left">{props.title}</span>
                     <span class="ml-auto text-xs whitespace-nowrap">{formatDateTime(props.date)}</span>
                 </div>
-                <span class="text-left font-medium line-clamp-2 h-[2.25rem]">{props.message}</span>
+                <span class="text-left font-medium line-clamp-2 h-[2.25rem]" style={{ "word-break": "break-all" }}>
+                    {messageIsAttachment(props.message)
+                        ?
+                        <>
+                            <Paperclip class="w-3 h-3 inline mr-1" />
+                            {getFilename(props.message)}
+                        </>
+                        : props.message}
+                </span>
             </div>
             <div class="flex-0 flex flex-col item-center justify-center h-full" style={{
                 ...(isHovered() ? { width: "3rem" } : { width: "0rem" }),
@@ -117,7 +126,7 @@ const MessagesSidebar = (props: { isOpen: boolean }) => {
                 <div class="flex-1 overflow-y-auto overflow-x-hidden">
                     {/* <MessagesList /> */}
                     <Show when={query().length === 0}>
-                        <For each={rootNodes().reverse()}>
+                        <For each={rootNodes().slice().reverse()}>
                             {node => <MessageLink
                                 id={node.path}
                                 title={node.title || ""}

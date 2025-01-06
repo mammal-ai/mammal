@@ -1,4 +1,4 @@
-import { Accessor, createContext, createSignal } from "solid-js";
+import { createSignal } from "solid-js";
 
 export enum ModelType {
     Anthropic,
@@ -61,24 +61,6 @@ export type Model = {
 };
 type UnsavedModel = Omit<Model, "id">;
 
-// type ProviderContextType = {
-//     providers: Accessor<Provider[]>;
-//     models: Accessor<Model[]>;
-//     addProvider: (provider: UnsavedProvider) => Promise<number | null>;
-//     removeProvider: (id: number) => void;
-//     addModel: (model: UnsavedModel) => Promise<number | null>;
-//     removeModel: (id: number) => void;
-// };
-
-// export const ProviderContext = createContext<ProviderContextType>({
-//     providers: () => [],
-//     models: () => [],
-//     addProvider: async () => null,
-//     removeProvider: () => { },
-//     addModel: async () => null,
-//     removeModel: () => { },
-// });
-
 const initialProviders = localStorage.getItem("providers") ? JSON.parse(localStorage.getItem("providers")!) : [];
 const initialModels = localStorage.getItem("models") ? JSON.parse(localStorage.getItem("models")!) : [];
 
@@ -140,12 +122,3 @@ export {
     addModel,
     removeModel
 }
-
-// export const ModelProviderProvider = (props: { children: any }) => {
-
-//     return (
-//         <ProviderContext.Provider value={{ providers, models, addProvider, removeProvider, addModel, removeModel }}>
-//             {props.children}
-//         </ProviderContext.Provider>
-//     );
-// }

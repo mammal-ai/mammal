@@ -104,6 +104,9 @@ export const generateNewMessage = async (messageThread: LlmMessage[]) => {
     messages: messageThread,
     maxTokens: maxTokens(),
     temperature: temperature(),
+    experimental_telemetry: {
+      isEnabled: false,
+    },
   });
 
   result.text.then((message) => {

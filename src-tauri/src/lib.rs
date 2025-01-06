@@ -3,8 +3,55 @@
 // fn greet(name: &str) -> String {
 //     format!("Hello, {}! You've been greeted from Rust!", name)
 // }
+use pandoc_wasm_wrapper::pandoc;
 use tauri::Manager;
 use tauri_plugin_sql::{Migration, MigrationKind};
+
+enum FromType {
+    Docx,
+}
+
+impl FromType {
+    fn to_string(&self) -> String {
+        match self {
+            FromType::Docx => "docx".to_string(),
+        }
+    }
+}
+
+#[tauri::command(async)]
+async fn init_pandoc() -> Result<(), ()> {
+    // we just use --version as an arg to load the pandoc wasm binary
+    let args: Vec<String> = vec!["--version".to_string()];
+    let input_bytes = vec![];
+    let version = pandoc(&args, &input_bytes).await;
+    if version.is_err() {
+        return Err(());
+    }
+    Ok(())
+}
+
+async fn to_md(from_type: FromType, path: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let from = "--from=".to_string() + &from_type.to_string();
+    let args: Vec<String> = vec![from, "--to=markdown".to_string()];
+    let input_bytes = std::fs::read(&path)?;
+    pandoc(&args, &input_bytes).await
+}
+
+fn get_plain_text(path: &str) -> String {
+    std::fs::read_to_string(&path).unwrap()
+}
+
+#[tauri::command]
+async fn get_file(path: String) -> String {
+    let extention = path.split('.').last().unwrap();
+    match extention {
+        // "pdf" => from_pdf(&path).await.unwrap(),
+        "docx" => to_md(FromType::Docx, &path).await.unwrap(),
+        "md" | "txt" | "csv" | "json" => get_plain_text(&path),
+        _ => "Unsupported file type".to_string(),
+    }
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -80,9 +127,9 @@ pub fn run() {
     ];
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_cors_fetch::init())
-        // .plugin(tauri_plugin_dialog::init())
-        // .plugin(tauri_plugin_opener::init())
-        // .invoke_handler(tauri::generate_handler![init_pandoc, get_file])
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
+        .invoke_handler(tauri::generate_handler![init_pandoc, get_file])
         .plugin(
             tauri_plugin_sql::Builder::default()
                 .add_migrations("sqlite:mammal.db", migrations)

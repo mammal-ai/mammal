@@ -8,7 +8,8 @@ type TextFieldProps = {
     placeholder?: string;
     value: string;
     setValue: Setter<string>;
-    onBlur?: () => void;
+    onBlur?: JSX.FocusEventHandlerUnion<HTMLInputElement, FocusEvent>,
+    onFocus?: JSX.FocusEventHandlerUnion<HTMLInputElement, FocusEvent>,
     onKeyUp?: JSX.EventHandlerUnion<HTMLInputElement, KeyboardEvent, JSX.EventHandler<HTMLInputElement, KeyboardEvent>>;
     ref?: HTMLInputElement;
 };
@@ -22,6 +23,7 @@ const TextField = (props: TextFieldProps) =>
         onInput={e => props.setValue(e.currentTarget.value)}
         onChange={e => props.setValue(e.currentTarget.value)}
         onBlur={props.onBlur}
+        onFocus={props.onFocus}
         onKeyUp={props.onKeyUp}
     />
 export { TextField };
