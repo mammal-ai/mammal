@@ -107,10 +107,9 @@ export const generateNewMessage = async (messageThread: LlmMessage[]) => {
     experimental_telemetry: {
       isEnabled: false,
     },
-    experimental_transform: smoothStream({
-      delayInMs: 20,
-      // chunking: "word" // "word" is default, can also be "line"
-    }),
+    // `smoothStream` can be configured with `delayInMs` and `chunking` params
+    // but it has sensible defaults (10ms, "word")
+    experimental_transform: smoothStream(),
   });
 
   result.text.then((message) => {
