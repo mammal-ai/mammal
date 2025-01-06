@@ -63,14 +63,16 @@ const refreshRootNodes = async () => {
 
     // find all the rootIds that don't have a title and generate one for them using `generateTitle()`
     const rootIdsWithoutTitles = rootIds.filter(id => !titles.find(t => t.id === id));
-    const generatedTitles = await Promise.all(rootIdsWithoutTitles.map(async id => {
+    const generatedTitles = (await Promise.all(rootIdsWithoutTitles.map(async id => {
         const messages = await db.select<{ path: string, message: string }>("SELECT path, message FROM message_view WHERE path LIKE $1", [`${id}.%`])
         const title = await generateTitle([{ role: "user", content: JSON.stringify(messages) }]) as string;
-        if (title) {
-            await db.execute("INSERT INTO thread_titles (id, title) VALUES ($1, $2)", [id, title])
+        const trimmedTitle = title.trim()
+        const dequotedTitle = /^".*"$/.test(trimmedTitle) ? trimmedTitle.substring(1, trimmedTitle.length - 2) : trimmedTitle
+        if (dequotedTitle) {
+            await db.execute("INSERT INTO thread_titles (id, title) VALUES ($1, $2)", [id, dequotedTitle])
         }
-        return { id, title };
-    }));
+        return { id, title: dequotedTitle };
+    }))).filter(t => t !== null)
     const allTitles = [...titles, ...generatedTitles];
     setRootNodes(nodes.map(n => ({
         title: allTitles.find(t => t.id === n.path.split(".")[0])?.title || "Unknown Title",
