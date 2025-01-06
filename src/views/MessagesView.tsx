@@ -12,7 +12,7 @@ import EditDialog from '../components/EditDialog';
 import MessageThread from '../components/MessageThread';
 
 const MessagesView = () => {
-    const { messages, isLoading, append, setMessages } = useChat({ api: "https://hijacked_fetch_request.com/api/chat" });
+    const { messages, isLoading, append, setMessages } = useChat({ api: "https://hijacked_fetch_request/api/chat" });
     const [open, setOpen] = createSignal(true);
     const [editId, setEditId] = createSignal<string | null>(null)
 

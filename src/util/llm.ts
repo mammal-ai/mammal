@@ -141,7 +141,7 @@ const chatApiHandler = (_url: any, options?: any) => {
 export const initLlm = () => {
   // we hijack fetch to support useChat, which was designed for SSR
   window.fetch = function (url, options) {
-    if (url !== "https://hijacked_fetch_request.com/api/chat") {
+    if (url !== "https://hijacked_fetch_request/api/chat") {
       return ORIGINAL_FETCH(url, options);
     }
     return chatApiHandler(url, options);
