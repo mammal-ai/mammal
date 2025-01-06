@@ -139,12 +139,12 @@ pub fn run() {
             let window = app.get_webview_window("main").unwrap();
             let _ = window.set_min_size(Some(tauri::Size::Logical(tauri::LogicalSize {
                 width: 1000.0,
-                height: 700.0,
+                height: 600.0,
             })));
             window
                 .set_size(tauri::Size::Logical(tauri::LogicalSize {
                     width: 1000.0,
-                    height: 700.0,
+                    height: 600.0,
                 }))
                 .unwrap();
             Ok(())
