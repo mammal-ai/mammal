@@ -1,8 +1,6 @@
 import Database from "@tauri-apps/plugin-sql";
-// when using `"withGlobalTauri": true`, you may use
-// const V = window.__TAURI__.sql;
 
-const TIMEOUT = 250;
+const TIMEOUT = 2500;
 
 let db: Database | null = null;
 
@@ -18,21 +16,44 @@ const dbPromise = Database.load("sqlite:mammal.db");
   await db.execute(`PRAGMA page_size = 8192;`);
 })();
 
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+let isNotified = false;
+const notify = () => {
+  if (!isNotified) isNotified = true;
+
+  alert("Could not open db in a reasonable amount of time");
+};
 
 export default {
   select: async <T>(query: string, bindValues: any[] = []) => {
+    let can_run = { status: false };
+    let abortable = setTimeout(() => {
+      if (!can_run.status) {
+        notify();
+      }
+    }, TIMEOUT);
+    await dbPromise;
+    clearTimeout(abortable);
+
     if (!db) {
-      await wait(TIMEOUT);
-      if (!db) throw new Error("Database not loaded");
+      throw new Error("Database not loaded");
     }
+
     return (await db.select(query, bindValues)) as T[];
   },
   execute: async (query: string, bindValues: any[] = []) => {
+    let can_run = { status: false };
+    let abortable = setTimeout(() => {
+      if (!can_run.status) {
+        notify();
+      }
+    }, TIMEOUT);
+    await dbPromise;
+    clearTimeout(abortable);
+
     if (!db) {
-      await wait(TIMEOUT);
-      if (!db) throw new Error("Database not loaded");
+      throw new Error("Database not loaded");
     }
+
     return await db.execute(query, bindValues);
   },
 };
