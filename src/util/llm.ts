@@ -27,7 +27,7 @@ const GENERATE_TITLE_PROMPT = `
   .replace(/\s+/g, " ")
   .trim();
 
-const llmForProvider = (provider: Provider) => {
+export const llmForProvider = (provider: Provider) => {
   switch (provider.type) {
     case ModelType.Anthropic:
       return createAnthropic({ apiKey: provider.apiKey });
