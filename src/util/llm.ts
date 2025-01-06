@@ -2,7 +2,7 @@ import { createGroq } from "@ai-sdk/groq";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
-import { streamText } from "ai";
+import { streamText, smoothStream } from "ai";
 import {
   model,
   provider,
@@ -107,6 +107,10 @@ export const generateNewMessage = async (messageThread: LlmMessage[]) => {
     experimental_telemetry: {
       isEnabled: false,
     },
+    experimental_transform: smoothStream({
+      delayInMs: 20,
+      // chunking: "word" // "word" is default, can also be "line"
+    }),
   });
 
   result.text.then((message) => {
