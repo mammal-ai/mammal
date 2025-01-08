@@ -20,6 +20,7 @@ import { Info } from "lucide-solid"
 const accordionTriggerClasses = "text-lg font-bold h-7 hover:no-underline hover:text-slate-900"
 
 type MessageWithEditableVariableNamesProps = {
+    left: boolean,
     message: string,
     handleSelection: () => void,
     renameVariable: (newName: string) => void
@@ -27,11 +28,12 @@ type MessageWithEditableVariableNamesProps = {
 const MessageWithEditableVariableNames = (props: MessageWithEditableVariableNamesProps) => {
     const parts = props.message.split(variableRegex)
     return (
-        <div>
+        <div class={"p-4 rounded-lg bg-slate-100 " + (props.left ? "mr-2" : "ml-2")}>
             <For each={parts}>
-                {(part, i) => i() % 2 === 0
-                    ? <span onMouseUp={props.handleSelection}>{part}</span>
-                    : <span class="__mammal_variable__" onClick={() => props.renameVariable("new_name")}>{part}</span>
+                {(part, i) => part.length === 0 ? <></> :
+                    i() % 2 === 0
+                        ? <span onMouseUp={props.handleSelection}>{part}</span>
+                        : <span class="__mammal_variable__" onClick={() => props.renameVariable("new_name")}>{part}</span>
                 }
             </For>
         </div>
@@ -168,7 +170,7 @@ const ChallengeDialog = (props: ChallengeDialogProps) => {
 
     return (
         <Dialog open={props.treeId !== null} onOpenChange={props.onClose}>
-            <DialogContent ref={$dialog} class="max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogContent ref={$dialog} class="max-h-[90vh] min-w-[60%] overflow-hidden flex flex-col">
                 <DialogHeader class="flex-0">
                     <DialogTitle>New Benchmark Challenge</DialogTitle>
                     <DialogDescription class="h-full overflow-hidden">
@@ -193,15 +195,18 @@ const ChallengeDialog = (props: ChallengeDialogProps) => {
                             <Accordion collapsible class="w-full">
                                 <AccordionItem value="item-1" class="border-none">
                                     <AccordionTrigger class={accordionTriggerClasses}>{messages().length > 1 ? "Messages" : "Message"}</AccordionTrigger>
-                                    <AccordionContent>
-                                        <For each={messages()}>
-                                            {(message, i) =>
-                                                <MessageWithEditableVariableNames
-                                                    message={message.content}
-                                                    handleSelection={handleSelection(i())}
-                                                    renameVariable={() => { }}
-                                                />}
-                                        </For>
+                                    <AccordionContent class="mt-2">
+                                        <div class="flex flex-col space-y-2">
+                                            <For each={messages()}>
+                                                {(message, i) =>
+                                                    <MessageWithEditableVariableNames
+                                                        left={i() % 2 === 0}
+                                                        message={message.content}
+                                                        handleSelection={handleSelection(i())}
+                                                        renameVariable={() => { }}
+                                                    />}
+                                            </For>
+                                        </div>
                                         <Show when={selectedText() && showVariablePopup()}>
                                             <div class="absolute bg-white border shadlow-lg p-4 rounded z-50"
                                                 style={{
@@ -228,25 +233,28 @@ const ChallengeDialog = (props: ChallengeDialogProps) => {
                             <Accordion collapsible class="w-full">
                                 <AccordionItem value="item-2" class="border-none">
                                     <AccordionTrigger class={accordionTriggerClasses}>Data</AccordionTrigger>
-                                    <AccordionContent>
-                                        <table class="w-full">
-                                            <thead>
-                                                <tr>
-                                                    <For each={variables()}>
-                                                        {variable => <td class="font-bold">{variable.name}</td>}
-                                                    </For>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr>
-                                                    <For each={variables()}>
-                                                        {variable => <td>{variable.value
-                                                            ? variable.value
-                                                            : <span class="italic text-slate-400">not set</span>}</td>}
-                                                    </For>
-                                                </tr>
-                                            </tbody>
-                                        </table>
+                                    <AccordionContent class="mt-2">
+                                        {variables().length === 0
+                                            ? <span class="italic text-slate-400">No variables</span>
+                                            : <table class="w-full">
+                                                <thead>
+                                                    <tr>
+                                                        <For each={variables()}>
+                                                            {variable => <td class="font-bold">{variable.name}</td>}
+                                                        </For>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <For each={variables()}>
+                                                            {variable => <td>{variable.value
+                                                                ? variable.value
+                                                                : <span class="italic text-slate-400">not set</span>}</td>}
+                                                        </For>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        }
                                         <div class="pt-4 mt-4 flex flex-row items-center space-x-2 border-t border-t-slate-200">
                                             <TextField value="test" setValue={() => { }} />
                                             <Button>Add Variable</Button>
@@ -261,7 +269,7 @@ const ChallengeDialog = (props: ChallengeDialogProps) => {
                             <Accordion collapsible class="w-full">
                                 <AccordionItem value="item-2" class="border-none">
                                     <AccordionTrigger class={accordionTriggerClasses}>Evaluation</AccordionTrigger>
-                                    <AccordionContent>
+                                    <AccordionContent class="mt-2">
 
                                         <div class="flex flex-col space-y-1">
                                             <div class="flex flex-row items-center justify-end">

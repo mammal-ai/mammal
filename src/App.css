@@ -9,7 +9,7 @@
   content: "}}";
 }
 .__mammal_variable__ {
-  @apply inline-flex flex-row items-center bg-slate-200 hover:shadow active:shadow-sm active:bg-slate-300 font-bold rounded p-1 mx-1;
+  @apply inline-flex flex-row items-center bg-slate-200 hover:shadow active:shadow-sm active:bg-slate-300 font-bold rounded p-1;
   cursor: pointer;
   user-select: none;
 }
