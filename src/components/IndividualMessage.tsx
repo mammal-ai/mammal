@@ -6,7 +6,7 @@ import 'highlight.js/styles/github.css';
 import { cascadeDelete, getMessage, MessageData, setActiveMessage, setThreadFor } from '../state/MessagesContext';
 import MPTreeNode from '../util/tree/MPTreeNode';
 import { getParentId } from '../util/tree/treeUtils';
-import './IndividualMessage.css';
+import { variableRegex } from '../util/messageVariables';
 
 const [mousePosition, setMousePosition] = createSignal([0, 0])
 
@@ -22,8 +22,6 @@ const getHoveredElement = () => {
     return document.elementFromPoint(x, y);
 }
 
-// i.e., it must match "${{alphanumeric+underscore}}"
-const variableRegex = new RegExp(/\${{([a-zA-Z0-9_]+)}}/)
 const highlightMessageVariables = (msg: string) => {
     return msg.replace(variableRegex, `<span class="__mammal_variable__">$1</span>`)
 }
@@ -271,7 +269,7 @@ const IndividualMessage = (props: IndividualMessageProps) => {
     }
 
     const [highlightedMd] = createResource<string, string, unknown>(() => props.message,
-        debounce<string>((source: string) => highlightMessageVariables(mdWithHighlights.render(source)), 120)
+        debounce<string>((source: string) => mdWithHighlights.render(source), 120)
     );
 
     return (
