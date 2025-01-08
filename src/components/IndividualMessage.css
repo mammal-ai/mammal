@@ -1,0 +1,15 @@
+.__mammal_variable__::before,
+.__mammal_variable__::after {
+  @apply text-xs text-blue-300 px-0.5;
+}
+.__mammal_variable__::before {
+  content: "${{";
+}
+.__mammal_variable__::after {
+  content: "}}";
+}
+.__mammal_variable__ {
+  @apply relative inline-flex flex-row items-center bg-white/30 hover:bg-white/40 font-bold rounded mx-1 px-1;
+  top: -2px;
+  cursor: pointer;
+}
