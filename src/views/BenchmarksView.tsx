@@ -318,9 +318,9 @@ const BenchmarksView = (props: { isOpen: boolean }) => {
                             </thead>
                             <tbody>
                                 <For each={getBenchmarkResultsGroupedByData(selectedBenchmark()!)}>
-                                    {row =>
+                                    {(row, rowIndex) =>
                                         <tr>
-                                            <td>{JSON.stringify(row[0].data)}</td>
+                                            <td class="text-slate-400">{rowIndex()}</td>
                                             {/* <td class="text-right" title={row..toString()}>{row.score}</td> */}
                                             <For each={row}>
                                                 {col =>

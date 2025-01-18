@@ -175,24 +175,8 @@ const runBenchmark = async (benchmark: Benchmark) => {
                 console.error(model.providerId, providers())
                 throw "Could not find provider!"
             }
-            console.log({
-                model: model,
-                challengeId: challenge.id,
-                provider: provider
-            })
 
             const llm = llmForProvider(provider);
-
-            console.log({
-                model: llm(model.model),
-                system: "You are a helpful assistant.",
-                messages,
-                maxTokens: benchmarkModel.maxTokens || 1000,
-                temperature: benchmarkModel.temperature || 0.5,
-                experimental_telemetry: {
-                    isEnabled: false,
-                },
-            })
 
             const result = await generateText({
                 model: llm(model.model),
@@ -205,17 +189,20 @@ const runBenchmark = async (benchmark: Benchmark) => {
                 },
             })
 
+            const trimmedResult = result.text.trim()
+            const score = scoreValue(
+                trimmedResult,
+                replaceVariablesInMessage(challenge.metric.value, variables, row),
+                challenge.metric.type,
+                challenge.metric.case_sensitive
+            ) ? 1 : 0
+
             addResult({
                 challengeId: challenge.id,
                 modelId: model.id,
                 data: row,
-                resultContent: result.text,
-                score: scoreValue(
-                    result.text,
-                    replaceVariablesInMessage(challenge.metric.value, variables, row),
-                    challenge.metric.type,
-                    challenge.metric.case_sensitive
-                ) ? 1 : 0
+                resultContent: trimmedResult,
+                score: score,
             })
         }
     }
