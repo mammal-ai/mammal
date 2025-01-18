@@ -10,12 +10,13 @@ type MessageListButtonProps = {
 const MessageListButton = (props: MessageListButtonProps) =>
     <button
         onClick={props.onClick}
-        class="max-w-full w-full flex flex-row border-b bg-gray-50 text-sm text-gray-600 leading-tight hover:bg-gray-100 hover:text-gray-900 border-r-transparent hover:border-r-gray-300"
+        class="max-w-full w-full flex flex-row border-b bg-gray-50 text-sm text-gray-600 leading-tight hover:bg-gray-100 hover:text-gray-900 border-l-transparent hover:border-l-gray-300"
         style={{
-            "border-right-width": "4px",
-            "border-right-style": "solid",
+            "border-left-width": "4px",
+            "border-left-style": "solid",
             ...(props.active ? {
-                "border-right-color": "#3182ce",
+                "border-left-color": "#3182ce",
+                "background": "#eff6ff"
             } : {})
         }}
         onMouseEnter={() => props.setIsHovered(true)}

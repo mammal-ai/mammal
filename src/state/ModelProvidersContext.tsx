@@ -31,7 +31,7 @@ export const modelTypeFromString = (modelType: string) => {
 }
 
 export type Provider = {
-    id: number;
+    id: string;
     name: string;
     type: ModelType;
     endpoint: string;
@@ -52,10 +52,10 @@ type ModelMeta = {
 }
 
 export type Model = {
-    id: number;
+    id: string;
     name: string;
     model: string;
-    providerId: number;
+    providerId: string;
     available: boolean;
     meta?: ModelMeta;
 };
@@ -64,21 +64,12 @@ type UnsavedModel = Omit<Model, "id">;
 const initialProviders = localStorage.getItem("providers") ? JSON.parse(localStorage.getItem("providers")!) : [];
 const initialModels = localStorage.getItem("models") ? JSON.parse(localStorage.getItem("models")!) : [];
 
-const getUnusedId = (items: { id: number }[]) => {
-    const ids = items.map(i => i.id);
-    let id = 0;
-    while (ids.includes(id)) {
-        id++;
-    }
-    return id;
-}
-
 const [providers, setProviders] = createSignal<Provider[]>(initialProviders);
 const [models, setModels] = createSignal<Model[]>(initialModels);
 
-const addProvider = (provider: UnsavedProvider) => new Promise<number>((resolve) => {
+const addProvider = (provider: UnsavedProvider) => new Promise<string>((resolve) => {
     setProviders(providers => {
-        const id = getUnusedId(providers);
+        const id = crypto.randomUUID()
         const newProviders = [...providers, { id, ...provider }];
         localStorage.setItem("providers", JSON.stringify(newProviders));
         resolve(id);
@@ -86,7 +77,7 @@ const addProvider = (provider: UnsavedProvider) => new Promise<number>((resolve)
     })
 });
 
-const removeProvider = (id: number) => {
+const removeProvider = (id: string) => {
     // First cascade delete models
     models().filter(m => m.providerId === id).forEach(m => removeModel(m.id));
     setProviders(providers => {
@@ -96,9 +87,9 @@ const removeProvider = (id: number) => {
     })
 };
 
-const addModel = (model: UnsavedModel) => new Promise<number>((resolve) => {
+const addModel = (model: UnsavedModel) => new Promise<string>((resolve) => {
     setModels(models => {
-        const id = getUnusedId(models);
+        const id = crypto.randomUUID()
         const newModels = [...models, { id, ...model }];
         localStorage.setItem("models", JSON.stringify(newModels));
         resolve(id);
@@ -106,7 +97,7 @@ const addModel = (model: UnsavedModel) => new Promise<number>((resolve) => {
     });
 });
 
-const removeModel = (id: number) => {
+const removeModel = (id: string) => {
     setModels(models => {
         const newModels = models.filter(m => m.id !== id);
         localStorage.setItem("models", JSON.stringify(newModels));

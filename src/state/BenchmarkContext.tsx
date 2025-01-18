@@ -1,27 +1,36 @@
 import { createEffect, createSignal } from "solid-js";
 import { getLocalstorageJsonOrNull } from "../util/localstorage";
-import { Model, providers } from "./ModelProvidersContext";
+import { models, providers } from "./ModelProvidersContext";
 import { llmForProvider } from "../util/llm";
 import { generateText } from "ai";
-import { getThreadEndingAt } from "./MessagesContext";
+import { ChatMessageRole, getThreadEndingAt } from "./MessagesContext";
+import { variableRegex } from "../util/messageVariables"
 
-type ChallengeId = string // treeId
+
+type MetricType = "EXACT" | "CONTAINS" | "MATCH"
 
 type Metric = {
-    type: "EXACT" | "CONTAINS" | "MATCH"
+    type: MetricType
     case_sensitive: boolean
     value: string
 }
 
 export type Challenge = {
-    id: ChallengeId
+    id: string,
+    messages: {
+        role: ChatMessageRole,
+        content: string
+    }[]
     title: string
     metric: Metric
 }
 
-type Result = {
-    model: Model
-    challengeId: ChallengeId // treeId
+export type UnsavedChallenge = Omit<Challenge, "id">
+
+export type Result = {
+    modelId: string
+    challengeId: string
+    data: { [key: string]: string }
     resultContent: string
     score: number // [0:1]
 }
@@ -29,10 +38,14 @@ type Result = {
 export type Benchmark = {
     id: string
     title: string
-    models: Model[]
-    challenges: string[] // treeId
-    maxTokens: number
-    temperature: number
+    createdAt: string
+    challengeId: string
+    models: {
+        modelId: string
+        maxTokens: number
+        temperature: number
+    }[]
+    data: { [key: string]: string }[]
 }
 
 const initialChallenges = getLocalstorageJsonOrNull("challenges") || []
@@ -53,47 +66,46 @@ createEffect(() => {
     localStorage.setItem("benchmarks", JSON.stringify(benchmarks()))
 })
 
-const addChallenge = (newChallenge: Challenge) => {
-    if (challenges()?.map(b => b.id).includes(newChallenge.id)) {
-        console.warn("Not adding benchmark id, already present")
-        return
+const addChallenge = (challenge: UnsavedChallenge) => {
+    const newChallenge = {
+        id: crypto.randomUUID(),
+        ...structuredClone(challenge)
     }
     setChallenges([
         ...challenges(),
-        structuredClone(newChallenge)
+        newChallenge
     ])
+    return newChallenge
 }
 
 const removeChallenge = (treeId: string) => {
     setChallenges(challenges().filter(c => c.id !== treeId))
 }
 
+const getVariablesFromChallenge = (challenge: Challenge) => {
+    return [
+        ...challenge.messages.flatMap(m => Array.from(m.content.matchAll(variableRegex))),
+        ...Array.from(challenge.metric.value.matchAll(variableRegex))
+    ].map(regexMatch => regexMatch[1])
+}
+
 const addBenchmark = (benchmark: Omit<Benchmark, "id">) => {
     const id = crypto.randomUUID()
-    setBenchmarks([...benchmarks(), {
+    const newBenchmark = {
         id,
-        ...benchmark
-    }])
+        ...structuredClone(benchmark)
+    }
+    setBenchmarks([...benchmarks(), newBenchmark])
+    return newBenchmark
 }
 
 const removeBenchmark = (id: string) => {
     setBenchmarks(benchmarks().filter(b => b.id !== id))
 }
 
-const addChallengeToBenchmark = (challengeId: ChallengeId, benchmarkId: string) => {
-    const currentBenchmarks = structuredClone(benchmarks())
-    const bIndex = currentBenchmarks.findIndex(b => b.id === benchmarkId)
-    currentBenchmarks[bIndex].challenges.push(challengeId)
-    setBenchmarks(currentBenchmarks)
-}
-
-const removeChallengeFromBenchmark = (challengeId: ChallengeId, benchmarkId: string) => {
-    console.warn("Not implemented")
-}
-
 const addResult = (result: Result) => {
     // ensure not duplicate result
-    const duplicate = results().find(r => r.challengeId === result.challengeId && r.model.id === result.model.id)
+    const duplicate = results().find(r => r.challengeId === result.challengeId && r.modelId === result.modelId && JSON.stringify(r.data) === JSON.stringify(result.data))
     if (duplicate) {
         throw "Cannot add duplicate result (yet...)"
     }
@@ -103,42 +115,61 @@ const addResult = (result: Result) => {
     ])
 }
 
-const scoreValue = (value: string, metric: Metric) => {
-    if (metric.type === "EXACT") {
-        return metric.case_sensitive
-            ? metric.value.toUpperCase() === value.toUpperCase()
-            : metric.value === value
+const scoreValue = (value: string, targetValue: string, metricType: MetricType, caseSensitive: boolean) => {
+    console.log(metricType, caseSensitive, targetValue, value)
+    if (metricType === "EXACT") {
+        return caseSensitive
+            ? targetValue.toUpperCase() === value.toUpperCase()
+            : targetValue === value
     }
-    else if (metric.type === "CONTAINS") {
-        return metric.case_sensitive
-            ? value.toUpperCase().includes(metric.value.toUpperCase())
-            : value.includes(metric.value)
+    else if (metricType === "CONTAINS") {
+        return caseSensitive
+            ? value.toUpperCase().includes(targetValue.toUpperCase())
+            : value.includes(targetValue)
     }
-    else if (metric.type === "MATCH") {
-        const regexp = new RegExp(metric.value, metric.case_sensitive ? "i" : undefined)
+    else if (metricType === "MATCH") {
+        const regexp = new RegExp(targetValue, caseSensitive ? undefined : "i")
         return regexp.test(value)
     }
     throw "Impossible (i.e., we have a broken pattern match)"
 }
 
 const runBenchmark = async (benchmark: Benchmark) => {
-    for (const challengeId of benchmark.challenges) {
-        const challenge = challenges().find(c => c.id === challengeId)
-        if (!challenge) {
-            console.error(challengeId, challenges())
-            throw "Could not find challenge!"
-        }
+    const challenge = challenges().find(c => c.id === benchmark.challengeId)
+    if (!challenge) {
+        console.error(benchmark.challengeId, challenges())
+        throw "Could not find challenge!"
+    }
 
-        const messages = (await getThreadEndingAt(challenge.id)).map(n => ({
-            role: n.data.role,
-            content: n.data.message
+    const variables = getVariablesFromChallenge(challenge)
+
+    const replaceVariablesInMessage = (message: string, variables: string[], dataRow: { [key: string]: string }) =>
+        message.replaceAll(/\$\{\{([^}]+)\}\}/g, (_, variable) => {
+            if (variables.includes(variable)) {
+                return dataRow[variable]
+            }
+            return `{{${variable}}}`
+        })
+
+
+    for (const row of benchmark.data) {
+        const messages = challenge.messages.map(message => ({
+            role: message.role,
+            content: replaceVariablesInMessage(message.content, variables, row)
         }))
+
         if (messages.length === 0) {
             console.error("No messages found while benchmarking:", challenge.title, challenge.id)
             continue
         }
 
-        for (const model of benchmark.models) {
+        for (const benchmarkModel of benchmark.models) {
+            const model = models().find(m => m.id === benchmarkModel.modelId)
+            if (!model) {
+                console.error(model, models())
+                throw "Could not find provider!"
+            }
+
             const provider = providers().find(p => p.id === model.providerId)
             if (!provider) {
                 console.error(model.providerId, providers())
@@ -147,41 +178,44 @@ const runBenchmark = async (benchmark: Benchmark) => {
             console.log({
                 model: model,
                 challengeId: challenge.id,
+                provider: provider
             })
 
             const llm = llmForProvider(provider);
 
             console.log({
-                // model: groq("llama-3.1-8b-instant"),
-                // model: groq("llama3-8b-8192"),
                 model: llm(model.model),
                 system: "You are a helpful assistant.",
                 messages,
-                maxTokens: benchmark.maxTokens || 1000,
-                temperature: benchmark.temperature || 0.5,
+                maxTokens: benchmarkModel.maxTokens || 1000,
+                temperature: benchmarkModel.temperature || 0.5,
                 experimental_telemetry: {
                     isEnabled: false,
                 },
             })
 
             const result = await generateText({
-                // model: groq("llama-3.1-8b-instant"),
-                // model: groq("llama3-8b-8192"),
                 model: llm(model.model),
                 system: "You are a helpful assistant.",
                 messages,
-                maxTokens: benchmark.maxTokens || 1000,
-                temperature: benchmark.temperature || 0.5,
+                maxTokens: benchmarkModel.maxTokens || 1000,
+                temperature: benchmarkModel.temperature || 0.5,
                 experimental_telemetry: {
                     isEnabled: false,
                 },
             })
 
             addResult({
-                model: model,
                 challengeId: challenge.id,
+                modelId: model.id,
+                data: row,
                 resultContent: result.text,
-                score: scoreValue(result.text, challenge.metric) ? 1 : 0
+                score: scoreValue(
+                    result.text,
+                    replaceVariablesInMessage(challenge.metric.value, variables, row),
+                    challenge.metric.type,
+                    challenge.metric.case_sensitive
+                ) ? 1 : 0
             })
         }
     }
@@ -191,12 +225,11 @@ export {
     challenges,
     addChallenge,
     removeChallenge,
+    getVariablesFromChallenge,
     benchmarks,
     addBenchmark,
     removeBenchmark,
     runBenchmark,
-    addChallengeToBenchmark,
-    removeChallengeFromBenchmark,
     results,
     addResult,
 }

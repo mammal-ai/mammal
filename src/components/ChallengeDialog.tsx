@@ -5,17 +5,46 @@ import {
     DialogHeader,
     DialogTitle,
 } from "../shadcn/components/Dialog"
-import { Challenge } from "../state/BenchmarkContext"
+import { UnsavedChallenge } from "../state/BenchmarkContext"
 import { TextField } from "./TextField"
 import { getThreadEndingAt, rootNodes } from "../state/MessagesContext"
 import { Button } from "../shadcn/components/Button"
 import { Switch, SwitchControl, SwitchLabel, SwitchThumb } from "../shadcn/components/Switch"
 import { Select, SelectTrigger, SelectItem, SelectContent, SelectValue } from "../shadcn/components/Select"
-import { createEffect, createSignal, For, Show } from "solid-js"
+import { createEffect, createSignal, For, JSX, Show } from "solid-js"
 import { Message } from "ai"
 import { variableRegex } from "../util/messageVariables"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../shadcn/components/Accordion"
 import { Info } from "lucide-solid"
+
+function tryOr<T>(callback: Function, fallback: T) {
+    try {
+        return callback()
+    }
+    catch {
+        return fallback
+    }
+}
+
+type SelectionData = {
+    node: JSX.Element,
+    text: string
+}
+const [selectionData, setSelectionData] = createSignal<SelectionData | null>(null)
+
+document.addEventListener("selectionchange", e => {
+    const selection = window.getSelection()
+    const range = tryOr(() => selection?.getRangeAt(0), null)
+    if (selection && selection.anchorNode === selection.focusNode && selection.anchorNode?.parentElement && range && range.toString().length > 0) {
+        setSelectionData({
+            node: selection.anchorNode.parentElement,
+            text: range.toString()
+        })
+    }
+    else {
+        setSelectionData(null)
+    }
+})
 
 const accordionTriggerClasses = "text-lg font-bold h-7 hover:no-underline hover:text-slate-900"
 
@@ -23,17 +52,53 @@ type MessageWithEditableVariableNamesProps = {
     left: boolean,
     message: string,
     handleSelection: () => void,
-    renameVariable: (newName: string) => void
+    renameVariable: (oldName: string, newName: string) => void
 }
 const MessageWithEditableVariableNames = (props: MessageWithEditableVariableNamesProps) => {
+    let $div: HTMLDivElement | undefined = undefined
+    const [isEditing, setIsEditing] = createSignal("")
+    const [newName, setNewName] = createSignal("")
+
     const parts = props.message.split(variableRegex)
+
+    const onStartEditing = (name: string) => {
+        setIsEditing(name)
+        setNewName(name)
+    }
+
+    const wrapNameAsVar = (name: string) => `\${{${name}}}`
+
+    const onFinishedEditing = () => {
+        if (newName().trim().length === 0) {
+            setIsEditing("")
+            return
+        }
+        props.renameVariable(wrapNameAsVar(isEditing()), wrapNameAsVar(newName().trim()))
+        setIsEditing("")
+    }
+
+    const onKeyUp: JSX.EventHandlerUnion<HTMLInputElement, KeyboardEvent, JSX.EventHandler<HTMLInputElement, KeyboardEvent>> = (e) => {
+        if (e.key === "Enter") {
+            onFinishedEditing()
+        }
+    }
+
+    createEffect(() => {
+        const d = selectionData()
+        // @ts-ignore
+        if ($div?.contains(d?.node)) {
+            props.handleSelection()
+        }
+    })
+
     return (
-        <div class={"p-4 rounded-lg bg-slate-100 " + (props.left ? "mr-2" : "ml-2")}>
+        <div ref={$div} class={"p-4 rounded-lg bg-slate-100 whitespace-pre-wrap " + (props.left ? "mr-2" : "ml-2")}>
             <For each={parts}>
                 {(part, i) => part.length === 0 ? <></> :
                     i() % 2 === 0
-                        ? <span onMouseUp={props.handleSelection}>{part}</span>
-                        : <span class="__mammal_variable__" onClick={() => props.renameVariable("new_name")}>{part}</span>
+                        ? <span>{part}</span>
+                        : <span class="__mammal_variable__" onClick={() => onStartEditing(part)}>{isEditing() === part ?
+                            <TextField class="px-1 bg-white" value={newName()} setValue={setNewName} onKeyUp={onKeyUp} onBlur={onFinishedEditing} /> : part}</span>
                 }
             </For>
         </div>
@@ -56,7 +121,7 @@ const getMetricType = (t: "Exact" | "Contains" | "Regex Match") => {
 type ChallengeDialogProps = {
     treeId: string | null
     onClose: () => void
-    onSave: (challenge: Challenge) => void
+    onSave: (challenge: UnsavedChallenge) => void
 }
 const ChallengeDialog = (props: ChallengeDialogProps) => {
     let $dialog: HTMLDialogElement | undefined = undefined
@@ -70,6 +135,13 @@ const ChallengeDialog = (props: ChallengeDialogProps) => {
     const [variables, setVariables] = createSignal<{ name: string, value: string }[]>([])
     const [popupPosition, setPopupPosition] = createSignal<{ left: number, top: number }>({ left: 0, top: 0 })
     const [showVariablePopup, setShowVariablePopup] = createSignal<boolean>(false)
+
+    createEffect(() => {
+        const d = selectionData()
+        if (!d) {
+            setSelectedText("")
+        }
+    })
 
     const handleSelection = (index: number) => () => {
         const selection = window.getSelection()
@@ -93,33 +165,33 @@ const ChallengeDialog = (props: ChallengeDialogProps) => {
         setShowVariablePopup(true)
     }
 
-    const addVariable = () => {
+    const getNewVariableName = () => {
         let i = 0
-        const getNewVariableName = (i: number) => {
+        const generateCandidate = (i: number) => {
             return `\${{variable_${i}}}`
         }
-        let newVariableName = getNewVariableName(i)
+        let newVariableName = generateCandidate(i)
         while (variables().findIndex(v => v.name === newVariableName) !== -1) {
-            newVariableName = getNewVariableName(i++)
+            newVariableName = generateCandidate(i++)
         }
+        return newVariableName
+    }
 
-        setShowVariablePopup(false)
-        setVariables([
-            ...variables(),
-            {
-                name: newVariableName,
-                value: selectedText()
-            }
-        ])
+    const addVariable = (variableName: string) => {
         const index = selectedMessageIndex()
         const oldMessages = messages()
         const newMessage = structuredClone(oldMessages[index])
-        newMessage.content = newMessage.content.replace(selectedText(), newVariableName)
+        newMessage.content = newMessage.content.replace(selectedText(), variableName)
         setMessages([
             ...oldMessages.slice(0, index),
             newMessage,
             ...oldMessages.slice(index + 1)
         ])
+    }
+
+    const handleCreateVariablePopup = () => {
+        addVariable(getNewVariableName())
+        setShowVariablePopup(false)
     }
 
     createEffect(async () => {
@@ -132,11 +204,6 @@ const ChallengeDialog = (props: ChallengeDialogProps) => {
             id: n.path,
             role: n.data.role,
             content: n.data.message,
-        })))
-        const existingVariables = thread.map(n => n.data.message.match(variableRegex)).filter(v => !!v).flat()
-        setVariables(existingVariables.map(name => ({
-            name,
-            value: ""
         })))
     })
 
@@ -151,6 +218,13 @@ const ChallengeDialog = (props: ChallengeDialogProps) => {
         setBenchmarkTitle(newTitle)
     })
 
+    createEffect(() => {
+        const existingVariables = messages().map(m => m.content.match(variableRegex)).filter(v => !!v).flat()
+        setVariables(existingVariables.map(name => ({
+            name,
+            value: ""
+        })))
+    })
     const onSave = () => {
         const treeId = props.treeId
         if (treeId === null) {
@@ -158,7 +232,7 @@ const ChallengeDialog = (props: ChallengeDialogProps) => {
         }
 
         props.onSave({
-            id: treeId,
+            messages: messages(),
             title: benchmarkTitle(),
             metric: {
                 case_sensitive: metricCaseSensitivity(),
@@ -180,16 +254,16 @@ const ChallengeDialog = (props: ChallengeDialogProps) => {
                     </DialogDescription>
                 </DialogHeader>
 
-                <div class="flex flex-row items-center space-x-1 px-2">
-                    <div class="flex-0">
-                        Title:
-                    </div>
-                    <div class="flex-1">
-                        <TextField value={benchmarkTitle()} setValue={setBenchmarkTitle} />
-                    </div>
-                </div>
 
                 <div class="flex-1 overflow-y-scroll space-y-4 p-2">
+                    <div class="flex flex-row items-center space-x-1">
+                        <div class="flex-0">
+                            Title:
+                        </div>
+                        <div class="flex-1">
+                            <TextField value={benchmarkTitle()} setValue={setBenchmarkTitle} />
+                        </div>
+                    </div>
                     <div class="block flex flex-col space-y-2 overflow-y-scroll">
                         <div class="flex flex-row items-center bg-background rounded-md border px-4 py-2">
                             <Accordion collapsible class="w-full">
@@ -203,11 +277,28 @@ const ChallengeDialog = (props: ChallengeDialogProps) => {
                                                         left={i() % 2 === 0}
                                                         message={message.content}
                                                         handleSelection={handleSelection(i())}
-                                                        renameVariable={() => { }}
+                                                        renameVariable={(oldName, newName) => {
+                                                            console.log(oldName, newName)
+                                                            const ms = messages()
+                                                            const mIndex = i()
+                                                            const oldM = ms[mIndex]
+                                                            if (!oldM) {
+                                                                throw "Couldn't find current message"
+                                                            }
+
+                                                            setMessages([
+                                                                ...ms.slice(0, mIndex),
+                                                                {
+                                                                    ...oldM,
+                                                                    content: oldM.content.replace(oldName, newName)
+                                                                },
+                                                                ...ms.slice(mIndex + 1)
+                                                            ])
+                                                        }}
                                                     />}
                                             </For>
                                         </div>
-                                        <Show when={selectedText() && showVariablePopup()}>
+                                        <Show when={selectedText().length > 0 && showVariablePopup()}>
                                             <div class="absolute bg-white border shadlow-lg p-4 rounded z-50"
                                                 style={{
                                                     top: `${popupPosition().top + 5}px`,
@@ -216,7 +307,7 @@ const ChallengeDialog = (props: ChallengeDialogProps) => {
                                                 <div class="mb-2">Create variable from selected text?</div>
                                                 <div class="flex justify-end space-x-2">
                                                     <Button variant={"outline"} onClick={() => setShowVariablePopup(false)}>Cancel</Button>
-                                                    <Button onClick={addVariable}>Create</Button>
+                                                    <Button onClick={handleCreateVariablePopup}>Create</Button>
                                                 </div>
                                             </div>
                                         </Show>
@@ -228,42 +319,6 @@ const ChallengeDialog = (props: ChallengeDialogProps) => {
                                 </AccordionItem>
                             </Accordion>
                         </div>
-
-                        <div class="flex flex-row items-center bg-background rounded-md border px-4 py-2">
-                            <Accordion collapsible class="w-full">
-                                <AccordionItem value="item-2" class="border-none">
-                                    <AccordionTrigger class={accordionTriggerClasses}>Data</AccordionTrigger>
-                                    <AccordionContent class="mt-2">
-                                        {variables().length === 0
-                                            ? <span class="italic text-slate-400">No variables</span>
-                                            : <table class="w-full">
-                                                <thead>
-                                                    <tr>
-                                                        <For each={variables()}>
-                                                            {variable => <td class="font-bold">{variable.name}</td>}
-                                                        </For>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    <tr>
-                                                        <For each={variables()}>
-                                                            {variable => <td>{variable.value
-                                                                ? variable.value
-                                                                : <span class="italic text-slate-400">not set</span>}</td>}
-                                                        </For>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
-                                        }
-                                        <div class="pt-4 mt-4 flex flex-row items-center space-x-2 border-t border-t-slate-200">
-                                            <TextField value="test" setValue={() => { }} />
-                                            <Button>Add Variable</Button>
-                                        </div>
-                                    </AccordionContent>
-                                </AccordionItem>
-                            </Accordion>
-                        </div>
-
 
                         <div class="flex flex-row items-center bg-background rounded-md border px-4 py-2">
                             <Accordion collapsible class="w-full">
@@ -319,11 +374,11 @@ const ChallengeDialog = (props: ChallengeDialogProps) => {
                             </Accordion>
                         </div>
                     </div>
-                </div>
 
-                <div class="flex-0 flex flex-row justify-end space-x-2">
-                    <Button variant={"outline"} onClick={props.onClose}>Cancel</Button>
-                    <Button variant={"default"} onClick={onSave}>Create Benchmark</Button>
+                    <div class="flex-0 flex flex-row justify-end space-x-2">
+                        <Button variant={"outline"} onClick={props.onClose}>Cancel</Button>
+                        <Button variant={"default"} onClick={onSave}>Create Benchmark</Button>
+                    </div>
                 </div>
             </DialogContent>
         </Dialog >

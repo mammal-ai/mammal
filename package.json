@@ -29,6 +29,7 @@
     "cmdk-solid": "^1.1.0",
     "dayjs": "^1.11.13",
     "lucide-solid": "^0.468.0",
+    "papaparse": "^5.5.0",
     "remarkable": "^2.0.1",
     "solid-apexcharts": "^0.3.4",
     "solid-js": "^1.9.3",
@@ -38,6 +39,7 @@
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",
+    "@types/papaparse": "^5.3.15",
     "autoprefixer": "^10.4.20",
     "highlight.js": "^11.11.0",
     "postcss": "^8.4.49",

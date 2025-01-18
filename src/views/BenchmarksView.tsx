@@ -2,10 +2,19 @@ import { createSignal, For, Show } from "solid-js";
 import { Page } from "../components/Page";
 import { SolidApexCharts } from 'solid-apexcharts';
 import { ApexOptions } from "apexcharts";
-import { addBenchmark, Benchmark, benchmarks, challenges, results, runBenchmark } from "../state/BenchmarkContext";
+import { addBenchmark, Benchmark, benchmarks, challenges, Result, results, runBenchmark } from "../state/BenchmarkContext";
 import { Button } from "../shadcn/components/Button";
 import { Select, SelectTrigger, SelectItem, SelectContent, SelectValue } from "../shadcn/components/Select"
 import BenchmarkDialog from "../components/BenchmarkDialog";
+import { models } from "../state/ModelProvidersContext";
+
+const modelById = (id: string) => {
+    return models().find(m => m.id === id)
+}
+
+const challengeById = (id: string) => {
+    return challenges().find(c => c.id === id)
+}
 
 const avg = (values: number[]) =>
     values.reduce((a, v) => a + v, 0) / values.length
@@ -96,35 +105,12 @@ const Chart = (props: ChartProps) => {
                 borderRadius: 2,
                 columnWidth: '70%',
                 borderRadiusApplication: 'end'
-                // dataLabels: {
-                //     position: 'top', // top, center, bottom
-                // },
             }
         },
-        // dataLabels: {
-        //     enabled: true,
-        //     formatter: function (val) {
-        //         return val + "%";
-        //     },
-        //     offsetY: -20,
-        //     style: {
-        //         fontSize: '12px',
-        //         colors: ["#304758"]
-        //     }
-        // },
 
         xaxis: {
             categories: props.data.map(d => d.label),
             position: 'bottom',
-            // axisBorder: {
-            //     show: false
-            // },
-            // labels: {
-            //     show: false
-            // },
-            // axisTicks: {
-            //     show: false
-            // },
             crosshairs: {
                 fill: {
                     type: 'gradient',
@@ -157,59 +143,7 @@ const Chart = (props: ChartProps) => {
             max: 100
 
         },
-        // title: {
-        //     text: props.title,
-        //     floating: true,
-        //     offsetY: 330,
-        //     align: 'center',
-        //     style: {
-        //         color: '#444'
-        //     }
-        // }
     }
-        // {
-        //     plotOptions: {
-        //         bar: {
-        //             horizontal: false,
-        //             columnWidth: '70%',
-        //             borderRadius: 2,
-        //             borderRadiusApplication: 'end'
-        //         },
-        //     },
-        //     legend: {
-        //         // show: false
-        //         position: "top"
-        //     },
-        //     dataLabels: {
-        //         enabled: false
-        //     },
-        //     stroke: {
-        //         show: true,
-        //         width: 2,
-        //         colors: ['transparent']
-        //     },
-        //     xaxis: {
-        //         categories: ['MMLU', 'GPQA', 'Hellaswag', 'Arc', 'Lmarena'],
-        //     },
-        //     yaxis: {
-        //         // title: {
-        //         //     text: '$ (thousands)'
-        //         // }
-        //     },
-        //     fill: {
-        //         opacity: 1
-        //     },
-        //     tooltip: {
-        //         y: {
-        //             formatter: function (val, _data) {
-        //                 // we can use this to handle normalizing to a shared scale across different benchmarks:
-        //                 // const { dataPointIndex, seriesIndex } = data
-        //                 // console.log(`group: ${dataPointIndex} | col: ${seriesIndex}`)
-        //                 return `${val}`
-        //             }
-        //         }
-        //     }
-        // }
     );
     const [series] = createSignal([{
         name: props.title,
@@ -219,47 +153,66 @@ const Chart = (props: ChartProps) => {
     return <SolidApexCharts type="bar" options={options()} series={series()} />
 }
 
-const getBenchmarkResults = (benchmark: Benchmark) => {
-    const benchmarkModels = benchmark.models
-    const benchmarkChallenges = benchmark.challenges.map(challenge => challenges().find(c => c.id === challenge))
-    return benchmarkChallenges.map(c => benchmarkModels.map(m => {
-        const thisResult = results().find(r =>
-            c?.id && r.challengeId === c.id && r.model.id === m.id
-        )
-        return {
-            challenge: c,
-            model: m,
-            text: thisResult?.resultContent,
-            // @ts-ignore
-            score: Number.isFinite(thisResult?.score) ? parseFloat(thisResult.score) : "?"
+const getResultsForBenchmark = (benchmark: Benchmark) => {
+    return results().filter(r => r.challengeId === benchmark.challengeId)
+}
+
+const getBenchmarkResultsGroupedByData = (benchmark: Benchmark) => {
+    const groupedByData = getResultsForBenchmark(benchmark).reduce((acc, result) => {
+        const key = JSON.stringify(result.data)
+        if (!acc[key]) {
+            acc[key] = []
         }
-    }))
+        acc[key].push(result)
+        return acc
+    }, {} as Record<string, Result[]>)
+
+    return Object.values(groupedByData)
+}
+
+const getBenchmarkResultsGroupedByModel = (benchmark: Benchmark) => {
+    const groupedByModel = getResultsForBenchmark(benchmark).reduce((acc, result) => {
+        const key = result.modelId
+        if (!acc[key]) {
+            acc[key] = []
+        }
+        acc[key].push(result)
+        return acc
+    }, {} as Record<string, Result[]>)
+    return Object.values(groupedByModel)
 }
 
 const BenchmarksView = (props: { isOpen: boolean }) => {
+    const [selectedChallengeId, setSelectedChallengeId] = createSignal("")
     const [showNewBenchmarkDialog, setShowNewBenchmarkDialog] = createSignal(false)
     const [selectedBenchmark, setSelectedBenchmark] = createSignal<Benchmark | null>(null)
     const [chartOption, setChartOption] = createSignal("Top Models")
     const chartOptions = () => ["Top Models"].concat(benchmarks().map(b => b.title))
     const chartDataForSelectedBenchmark = () => {
-        const benchmark = benchmarks().find(b => b.title === chartOption())
+        const benchmark = benchmarks().find(b => b.id === selectedBenchmark()?.id)
+        console.log(benchmark)
         if (!benchmark) {
             return []
         }
 
-        const results = getBenchmarkResults(benchmark)
+        const results = getBenchmarkResultsGroupedByModel(benchmark)
         console.log(results[0])
-        const aggregation = results[0].map((m, i) => ({
-            label: m.model.name,
-            // @ts-ignore
-            score: results.some(m => typeof m[i].score === "string") ? 0 : avg(results.map(m => m[i].score))
-        }))
+        const aggregation = results.map((r, i) => {
+            console.log(r, modelById(r[0].modelId),)
+
+            return {
+                label: modelById(r[0].modelId)?.name || "Unknown Model Name",
+                score: results.some(m => typeof m[i].score === "string") ? 0 : avg(r.map(row => row.score))
+            }
+        })
+        console.log(aggregation)
         return aggregation
     }
 
-    const onSaveBenchmark = (benchmark: Omit<Benchmark, "id">) => {
-        addBenchmark(benchmark)
+    const onRunBenchmark = (benchmark: Omit<Benchmark, "id">) => {
+        const newBenchmark = addBenchmark(benchmark)
         setShowNewBenchmarkDialog(false)
+        runBenchmark(newBenchmark)
     }
 
     const firstBenchmark = benchmarks()?.[0]
@@ -271,14 +224,15 @@ const BenchmarksView = (props: { isOpen: boolean }) => {
     return (
         <Page isOpen={props.isOpen}>
             <BenchmarkDialog
+                challengeId={selectedChallengeId()}
                 open={showNewBenchmarkDialog()}
                 onClose={() => setShowNewBenchmarkDialog(false)}
-                onSave={onSaveBenchmark}
+                onRun={onRunBenchmark}
             />
             <div class="mx-auto min-w-[36rem] max-w-[48rem] p-6 mt-2 flex flex-col space-y-4">
                 <div class="flex flex-row items-center justify-between">
                     <span class="font-bold text-2xl">Model Benchmarks</span>
-                    <Button onClick={() => setShowNewBenchmarkDialog(true)}>New Benchmark</Button>
+                    {/* <Button onClick={() => setShowNewBenchmarkDialog(true)}>New Benchmark</Button> */}
                 </div>
                 <div class="flex flex-col items-center bg-background rounded-md border px-6 py-4">
                     <div class="flex flex-row w-full items-center justify-between">
@@ -316,9 +270,25 @@ const BenchmarksView = (props: { isOpen: boolean }) => {
                         </Show>
                     </div>
                 </div>
-                {/* <div class="flex flex-col items-center bg-background rounded-md border px-6 py-4">
+                <div class="flex flex-col items-center bg-background rounded-md border px-6 py-4">
                     {JSON.stringify(challenges())}
+                    <div>
+                        as
+                    </div>
+                    <For each={challenges()}>
+                        {challenge =>
+                            <div class="flex flex-row justify-between w-full">
+                                <div>
+                                    {challenge.title}
+                                </div>
+                                <div>
+                                    <Button onClick={() => { setSelectedChallengeId(challenge.id); setShowNewBenchmarkDialog(true) }}>Benchmark</Button>
+                                </div>
+                            </div>
+                        }
+                    </For>
                 </div>
+                {/* 
                 <div class="flex flex-col items-center bg-background rounded-md border px-6 py-4">
                     {JSON.stringify(benchmarks())}
                 </div>
@@ -329,9 +299,12 @@ const BenchmarksView = (props: { isOpen: boolean }) => {
                     <div>
                         <div class="flex flex-row items-center justify-between mb-4">
                             <div class="font-bold">
-                                Info for {selectedBenchmark()!.title}:
+                                Info for {challengeById(selectedBenchmark()?.challengeId || "")?.title || "Unknown"}:
                             </div>
                             <Button onClick={() => runBenchmark(selectedBenchmark()!)}>Run Benchmarks</Button>
+                        </div>
+                        <div>
+                            {JSON.stringify(selectedBenchmark())}
                         </div>
                         <table class="w-full">
                             <thead>
@@ -339,18 +312,19 @@ const BenchmarksView = (props: { isOpen: boolean }) => {
                                     <td>
                                     </td>
                                     <For each={selectedBenchmark()!.models}>
-                                        {m => <td class="text-right">{m.name}</td>}
+                                        {m => <td class="text-right">{modelById(m.modelId)?.name || "Unknown Model"}</td>}
                                     </For>
                                 </tr>
                             </thead>
                             <tbody>
-                                <For each={getBenchmarkResults(selectedBenchmark()!)}>
+                                <For each={getBenchmarkResultsGroupedByData(selectedBenchmark()!)}>
                                     {row =>
                                         <tr>
-                                            <td>{row?.[0].challenge?.title || "???"}</td>
+                                            <td>{JSON.stringify(row[0].data)}</td>
+                                            {/* <td class="text-right" title={row..toString()}>{row.score}</td> */}
                                             <For each={row}>
                                                 {col =>
-                                                    <td class="text-right" title={col.text}>{col.score}</td>
+                                                    <td class="text-right" title={col.resultContent}>{col.score}</td>
                                                 }
                                             </For>
                                         </tr>

@@ -95,7 +95,6 @@ export const generateNewMessage = async (messageThread: LlmMessage[]) => {
 
   const llm = llmForProvider(actualProvider);
 
-  console.log(messageThread);
   const result = streamText({
     // model: groq("llama-3.1-8b-instant"),
     // model: groq("llama3-8b-8192"),
