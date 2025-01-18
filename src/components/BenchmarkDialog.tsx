@@ -164,12 +164,20 @@ const BenchmarkDialog = (props: BenchmarkDialogProps) => {
                         </div>
                     </Show>
 
-                    <div class="w-full flex justify-between">
-                        <input type="file" name="data" onChange={onChooseFile} />
-                        <Button size={"icon"} class={data().length > 0 ? "" : "hidden"}>
-                            <Trash2 class="h-4 w-4" />
-                        </Button>
-                    </div>
+                    <Show when={variables().length > 0}>
+                        <div class="w-full flex justify-between">
+                            <input type="file" name="data" onChange={onChooseFile} />
+                            <Button
+                                size={"icon"}
+                                class={data().length > 0 ? "" : "hidden"}
+                                onClick={() => {
+                                    setData([])
+                                }}
+                            >
+                                <Trash2 class="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </Show>
 
                     <Show when={data().length > 0 && stillRequiredVars().length > 0}>
                         <div>

@@ -1,4 +1,4 @@
-import { createSignal, For, Show } from "solid-js";
+import { createEffect, createSignal, For, Show } from "solid-js";
 import { Page } from "../components/Page";
 import { SolidApexCharts } from 'solid-apexcharts';
 import { ApexOptions } from "apexcharts";
@@ -32,7 +32,7 @@ const TopModelsChart = () => {
                     horizontal: false,
                     columnWidth: '70%',
                     borderRadius: 2,
-                    borderRadiusApplication: 'end'
+                    borderRadiusApplication: "end"
                 },
             },
             legend: {
@@ -86,6 +86,55 @@ const TopModelsChart = () => {
     return <SolidApexCharts type="bar" options={options()} series={series()} />
 }
 
+
+const optionsFromProps: (p: ChartProps) => ApexOptions = (props) => ({
+    chart: {
+        toolbar: {
+            show: false
+        }
+    },
+    plotOptions: {
+        bar: {
+            borderRadius: 2,
+            columnWidth: '70%',
+            borderRadiusApplication: "end"
+        }
+    },
+
+    xaxis: {
+        categories: props.data.map(d => d.label),
+        position: 'bottom',
+        crosshairs: {
+            fill: {
+                type: 'gradient',
+                gradient: {
+                    colorFrom: '#D8E3F0',
+                    colorTo: '#BED1E6',
+                    stops: [0, 100],
+                    opacityFrom: 0.4,
+                    opacityTo: 0.5,
+                }
+            }
+        },
+        tooltip: {
+            enabled: true,
+        }
+    },
+    yaxis: {
+        labels: {
+            formatter: function (val) {
+                return Math.round(val) + "%";
+            }
+        },
+        max: 100
+
+    },
+})
+const seriesFromProps = (props: ChartProps) => ([{
+    name: props.title,
+    data: props.data.map(d => d.score * 100)
+}])
+
 type ChartProps = {
     title: string
     data: {
@@ -94,61 +143,14 @@ type ChartProps = {
     }[]
 }
 const Chart = (props: ChartProps) => {
-    const [options] = createSignal<ApexOptions>({
-        chart: {
-            toolbar: {
-                show: false
-            }
-        },
-        plotOptions: {
-            bar: {
-                borderRadius: 2,
-                columnWidth: '70%',
-                borderRadiusApplication: 'end'
-            }
-        },
+    const [options, setOptions] = createSignal<ApexOptions>(optionsFromProps(props));
+    const [series, setSeries] = createSignal(seriesFromProps(props));
 
-        xaxis: {
-            categories: props.data.map(d => d.label),
-            position: 'bottom',
-            crosshairs: {
-                fill: {
-                    type: 'gradient',
-                    gradient: {
-                        colorFrom: '#D8E3F0',
-                        colorTo: '#BED1E6',
-                        stops: [0, 100],
-                        opacityFrom: 0.4,
-                        opacityTo: 0.5,
-                    }
-                }
-            },
-            tooltip: {
-                enabled: true,
-            }
-        },
-        yaxis: {
-            // axisBorder: {
-            //     show: false
-            // },
-            // axisTicks: {
-            //     show: false,
-            // },
-            labels: {
-                // show: false,
-                formatter: function (val) {
-                    return Math.round(val) + "%";
-                }
-            },
-            max: 100
-
-        },
-    }
-    );
-    const [series] = createSignal([{
-        name: props.title,
-        data: props.data.map(d => d.score * 100)
-    }]);
+    // This causes re-rendering of the chart when the props change
+    createEffect(() => {
+        setOptions(optionsFromProps(props));
+        setSeries(seriesFromProps(props));
+    })
 
     return <SolidApexCharts type="bar" options={options()} series={series()} />
 }
@@ -187,14 +189,11 @@ const BenchmarksView = (props: { isOpen: boolean }) => {
     const [showNewBenchmarkDialog, setShowNewBenchmarkDialog] = createSignal(false)
     const [selectedBenchmark, setSelectedBenchmark] = createSignal<Benchmark | null>(null)
     const [chartOption, setChartOption] = createSignal("Top Models")
-    const chartOptions = () => ["Top Models"].concat(benchmarks().map(b => b.title))
-    const chartDataForSelectedBenchmark = () => {
-        const benchmark = benchmarks().find(b => b.id === selectedBenchmark()?.id)
-        console.log(benchmark)
-        if (!benchmark) {
-            return []
-        }
+    // const [chartProps, setChartProps] = createSignal<ChartProps>({ title: "", data: [] })
 
+    const chartOptions = () => ["Top Models"].concat(benchmarks().map(b => b.title))
+    const chartDataForBenchmark = (benchmark: Benchmark | null) => {
+        if (!benchmark) return []
         const results = getBenchmarkResultsGroupedByModel(benchmark)
         console.log(results[0])
         const aggregation = results.map((r, i) => {
@@ -202,7 +201,7 @@ const BenchmarksView = (props: { isOpen: boolean }) => {
 
             return {
                 label: modelById(r[0].modelId)?.name || "Unknown Model Name",
-                score: results.some(m => typeof m[i].score === "string") ? 0 : avg(r.map(row => row.score))
+                score: r.some(({ score }) => typeof score !== "number") ? 0 : avg(r.map(({ score }) => score))
             }
         })
         console.log(aggregation)
@@ -215,11 +214,27 @@ const BenchmarksView = (props: { isOpen: boolean }) => {
         runBenchmark(newBenchmark)
     }
 
+    createEffect(() => {
+        console.log(chartOption())
+        if (chartOption() !== "Top Models") {
+            const benchmark = benchmarks().find(b => b.title === chartOption())
+            console.log(benchmark)
+            setSelectedBenchmark(benchmark || null)
+            if (benchmark) {
+                // setChartProps({
+                //     title: chartOption(),
+                //     data: 
+                // })
+            }
+        }
+    })
+
     const firstBenchmark = benchmarks()?.[0]
     if (firstBenchmark) {
         setSelectedBenchmark(firstBenchmark)
     }
 
+    const chartData = () => chartDataForBenchmark(selectedBenchmark())
 
     return (
         <Page isOpen={props.isOpen}>
@@ -265,8 +280,9 @@ const BenchmarksView = (props: { isOpen: boolean }) => {
                         <Show when={chartOption() !== "Top Models"}>
                             <Chart
                                 title={chartOption()}
-                                data={chartDataForSelectedBenchmark()}
+                                data={chartData()}
                             />
+                            {JSON.stringify(chartData())}
                         </Show>
                     </div>
                 </div>
@@ -321,11 +337,14 @@ const BenchmarksView = (props: { isOpen: boolean }) => {
                                     {(row, rowIndex) =>
                                         <tr>
                                             <td class="text-slate-400">{rowIndex()}</td>
-                                            {/* <td class="text-right" title={row..toString()}>{row.score}</td> */}
-                                            <For each={row}>
-                                                {col =>
-                                                    <td class="text-right" title={col.resultContent}>{col.score}</td>
-                                                }
+                                            <For each={selectedBenchmark()!.models}>
+                                                {m => {
+                                                    const col = row.find(r => r.modelId === m.modelId)
+                                                    if (!col) {
+                                                        return <td class="text-right">-</td>
+                                                    }
+                                                    return <td class="text-right" title={col.resultContent}>{col.score}</td>
+                                                }}
                                             </For>
                                         </tr>
                                     }

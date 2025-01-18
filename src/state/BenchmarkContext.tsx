@@ -124,8 +124,8 @@ const scoreValue = (value: string, targetValue: string, metricType: MetricType, 
     }
     else if (metricType === "CONTAINS") {
         return caseSensitive
-            ? value.toUpperCase().includes(targetValue.toUpperCase())
-            : value.includes(targetValue)
+            ? value.includes(targetValue)
+            : value.toUpperCase().includes(targetValue.toUpperCase())
     }
     else if (metricType === "MATCH") {
         const regexp = new RegExp(targetValue, caseSensitive ? undefined : "i")
@@ -151,8 +151,10 @@ const runBenchmark = async (benchmark: Benchmark) => {
             return `{{${variable}}}`
         })
 
+    // If there is no data, we still want to run the benchmark once with empty variables
+    const dataRows = benchmark.data.length > 0 ? benchmark.data : [{}]
 
-    for (const row of benchmark.data) {
+    for (const row of dataRows) {
         const messages = challenge.messages.map(message => ({
             role: message.role,
             content: replaceVariablesInMessage(message.content, variables, row)
@@ -164,46 +166,52 @@ const runBenchmark = async (benchmark: Benchmark) => {
         }
 
         for (const benchmarkModel of benchmark.models) {
-            const model = models().find(m => m.id === benchmarkModel.modelId)
-            if (!model) {
-                console.error(model, models())
-                throw "Could not find provider!"
+            try {
+                const model = models().find(m => m.id === benchmarkModel.modelId)
+                if (!model) {
+                    console.error(model, models())
+                    throw "Could not find provider!"
+                }
+
+                const provider = providers().find(p => p.id === model.providerId)
+                if (!provider) {
+                    console.error(model.providerId, providers())
+                    throw "Could not find provider!"
+                }
+
+                const llm = llmForProvider(provider);
+
+                const result = await generateText({
+                    model: llm(model.model),
+                    system: "You are a helpful assistant.",
+                    messages,
+                    maxTokens: benchmarkModel.maxTokens || 1000,
+                    temperature: benchmarkModel.temperature || 0.5,
+                    experimental_telemetry: {
+                        isEnabled: false,
+                    },
+                })
+
+                const trimmedResult = result.text.trim()
+                const score = scoreValue(
+                    trimmedResult,
+                    replaceVariablesInMessage(challenge.metric.value, variables, row),
+                    challenge.metric.type,
+                    challenge.metric.case_sensitive
+                ) ? 1 : 0
+
+                addResult({
+                    challengeId: challenge.id,
+                    modelId: model.id,
+                    data: row,
+                    resultContent: trimmedResult,
+                    score: score,
+                })
             }
-
-            const provider = providers().find(p => p.id === model.providerId)
-            if (!provider) {
-                console.error(model.providerId, providers())
-                throw "Could not find provider!"
+            catch (e) {
+                console.error(e)
+                console.error("Failed to run benchmark", benchmark, challenge, variables)
             }
-
-            const llm = llmForProvider(provider);
-
-            const result = await generateText({
-                model: llm(model.model),
-                system: "You are a helpful assistant.",
-                messages,
-                maxTokens: benchmarkModel.maxTokens || 1000,
-                temperature: benchmarkModel.temperature || 0.5,
-                experimental_telemetry: {
-                    isEnabled: false,
-                },
-            })
-
-            const trimmedResult = result.text.trim()
-            const score = scoreValue(
-                trimmedResult,
-                replaceVariablesInMessage(challenge.metric.value, variables, row),
-                challenge.metric.type,
-                challenge.metric.case_sensitive
-            ) ? 1 : 0
-
-            addResult({
-                challengeId: challenge.id,
-                modelId: model.id,
-                data: row,
-                resultContent: trimmedResult,
-                score: score,
-            })
         }
     }
 }
