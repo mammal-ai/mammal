@@ -3,8 +3,16 @@ import { getLocalstorageJsonOrNull } from "../util/localstorage";
 import { models, providers } from "./ModelProvidersContext";
 import { llmForProvider } from "../util/llm";
 import { generateText } from "ai";
-import { ChatMessageRole, getThreadEndingAt } from "./MessagesContext";
+import { ChatMessageRole } from "./MessagesContext";
 import { variableRegex } from "../util/messageVariables"
+import { toaster } from "@kobalte/core";
+import {
+    Toast,
+    ToastContent,
+    ToastDescription,
+    ToastProgress,
+    ToastTitle,
+} from "../shadcn/components/Toast";
 
 
 type MetricType = "EXACT" | "CONTAINS" | "MATCH"
@@ -166,19 +174,20 @@ const runBenchmark = async (benchmark: Benchmark) => {
         }
 
         for (const benchmarkModel of benchmark.models) {
+            const model = models().find(m => m.id === benchmarkModel.modelId)
+            if (!model) {
+                console.error(model, models())
+                // throw "Could not find provider!"
+                continue
+            }
+
+            const provider = providers().find(p => p.id === model.providerId)
+            if (!provider) {
+                console.error(model.providerId, providers())
+                // throw "Could not find provider!"
+                continue
+            }
             try {
-                const model = models().find(m => m.id === benchmarkModel.modelId)
-                if (!model) {
-                    console.error(model, models())
-                    throw "Could not find provider!"
-                }
-
-                const provider = providers().find(p => p.id === model.providerId)
-                if (!provider) {
-                    console.error(model.providerId, providers())
-                    throw "Could not find provider!"
-                }
-
                 const llm = llmForProvider(provider);
 
                 const result = await generateText({
@@ -211,6 +220,17 @@ const runBenchmark = async (benchmark: Benchmark) => {
             catch (e) {
                 console.error(e)
                 console.error("Failed to run benchmark", benchmark, challenge, variables)
+                toaster.show((props) => (
+                    <Toast toastId={props.toastId} variant="destructive">
+                        <ToastContent>
+                            <ToastTitle>Could not run benchmark</ToastTitle>
+                            <ToastDescription>
+                                There was a problem calling {model.name}.
+                            </ToastDescription>
+                        </ToastContent>
+                        <ToastProgress />
+                    </Toast>
+                ));
             }
         }
     }
