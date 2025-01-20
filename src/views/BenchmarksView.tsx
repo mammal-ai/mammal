@@ -94,6 +94,16 @@ const TopModelsChart = () => {
 }
 
 
+type ChartProps = {
+    benchmarks: string[]
+    models: string[]
+    data: {
+        benchmark_name: string
+        model_name: string
+        score: number
+    }[]
+}
+
 const optionsFromProps: (p: ChartProps) => ApexOptions = (props) => ({
     chart: {
         toolbar: {
@@ -107,25 +117,11 @@ const optionsFromProps: (p: ChartProps) => ApexOptions = (props) => ({
             borderRadiusApplication: "end"
         }
     },
-
+    legend: {
+        position: "top"
+    },
     xaxis: {
-        categories: props.data.map(d => d.label),
-        position: 'bottom',
-        crosshairs: {
-            fill: {
-                type: 'gradient',
-                gradient: {
-                    colorFrom: '#D8E3F0',
-                    colorTo: '#BED1E6',
-                    stops: [0, 100],
-                    opacityFrom: 0.4,
-                    opacityTo: 0.5,
-                }
-            }
-        },
-        tooltip: {
-            enabled: true,
-        }
+        categories: props.benchmarks,
     },
     yaxis: {
         labels: {
@@ -137,18 +133,19 @@ const optionsFromProps: (p: ChartProps) => ApexOptions = (props) => ({
 
     },
 })
-const seriesFromProps = (props: ChartProps) => ([{
-    name: props.title,
-    data: props.data.map(d => d.score * 100)
-}])
 
-type ChartProps = {
-    title: string
-    data: {
-        label: string
-        score: number
-    }[]
+const seriesFromProps = (props: ChartProps) => {
+    return props.models.map(m => {
+        return {
+            name: m,
+            data: props.benchmarks.map(b => {
+                const result = props.data.find(d => d.benchmark_name === b && d.model_name === m)
+                return result ? result.score * 100 : 0
+            })
+        }
+    })
 }
+
 const Chart = (props: ChartProps) => {
     const [options, setOptions] = createSignal<ApexOptions>(optionsFromProps(props));
     const [series, setSeries] = createSignal(seriesFromProps(props));
@@ -163,7 +160,15 @@ const Chart = (props: ChartProps) => {
 }
 
 const getResultsForBenchmark = (benchmark: Benchmark) => {
-    return results().filter(r => r.challengeId === benchmark.challengeId)
+    // TODO: This is pretty hacky, we need to fix this when we start storing things in the db but there's a data modelling improvement somewhere in here...!
+    const data = JSON.stringify(benchmark.data)
+    const models = benchmark.models.map(m => m.modelId)
+    return results().filter(r => {
+        const stringifiedData = JSON.stringify(r.data)
+        return r.challengeId === benchmark.challengeId
+            && (stringifiedData === "{}" || data.includes(stringifiedData))
+            && models.includes(r.modelId)
+    })
 }
 
 const getBenchmarkResultsGroupedByData = (benchmark: Benchmark) => {
@@ -191,29 +196,42 @@ const getBenchmarkResultsGroupedByModel = (benchmark: Benchmark) => {
     return Object.values(groupedByModel)
 }
 
+const MultiSelectTrigger = (props: { options: { label: string, value: string, disabled: boolean }[] }) => {
+    return <>
+        {props.options.slice(0, 3).map(option =>
+            <span class="px-2 py-1 bg-slate-200 rounded">{option.label}</span>
+        )}
+        {props.options.length > 3 && <span class="px-2 py-1">...</span>}
+    </>
+}
+
 const BenchmarksView = (props: { isOpen: boolean }) => {
     const [selectedChallengeId, setSelectedChallengeId] = createSignal("")
     const [showNewBenchmarkDialog, setShowNewBenchmarkDialog] = createSignal(false)
-    const [selectedBenchmark, setSelectedBenchmark] = createSignal<Benchmark | null>(null)
-    const [chartOption, setChartOption] = createSignal("Top Models")
+    const [selectedBenchmarks, setSelectedBenchmarks] = createSignal<Benchmark[]>([])
+    const [chartOption, setChartOption] = createSignal<{
+        label: string,
+        value: string,
+        disabled: boolean
+    }[]>([])
     // const [chartProps, setChartProps] = createSignal<ChartProps>({ title: "", data: [] })
 
-    const chartOptions = () => ["Top Models"].concat(benchmarks().map(b => b.title))
-    const chartDataForBenchmark = (benchmark: Benchmark | null) => {
-        if (!benchmark) return []
-        const results = getBenchmarkResultsGroupedByModel(benchmark)
-        console.log(results[0])
-        const aggregation = results.map((r, i) => {
-            console.log(r, modelById(r[0].modelId),)
-
-            return {
-                label: modelById(r[0].modelId)?.name || "Unknown Model Name",
-                score: r.some(({ score }) => typeof score !== "number") ? 0 : avg(r.map(({ score }) => score))
-            }
-        })
-        console.log(aggregation)
-        return aggregation
-    }
+    const chartOptions = () => benchmarks().map(b => ({
+        label: b.title,
+        value: b.id,
+        disabled: false
+    }))
+    const chartDataForBenchmark = (benchmarksToDisplay: Benchmark[]) =>
+        benchmarksToDisplay.map(b => {
+            const results = getBenchmarkResultsGroupedByModel(b)
+            return results.map((r, i) => {
+                return {
+                    benchmark_name: b.title,
+                    model_name: modelById(r[0].modelId)?.name || "Unknown Model Name",
+                    score: r.some(({ score }) => typeof score !== "number") ? 0 : avg(r.map(({ score }) => score))
+                }
+            })
+        }).flat()
 
     const onRunBenchmark = (benchmark: Omit<Benchmark, "id">) => {
         const newBenchmark = addBenchmark(benchmark)
@@ -222,26 +240,12 @@ const BenchmarksView = (props: { isOpen: boolean }) => {
     }
 
     createEffect(() => {
-        console.log(chartOption())
-        if (chartOption() !== "Top Models") {
-            const benchmark = benchmarks().find(b => b.title === chartOption())
-            console.log(benchmark)
-            setSelectedBenchmark(benchmark || null)
-            if (benchmark) {
-                // setChartProps({
-                //     title: chartOption(),
-                //     data: 
-                // })
-            }
-        }
+        const selectedBenchmarkIds = new Set(chartOption().map(s => s.value))
+        const isSelected = (b: Benchmark) => selectedBenchmarkIds.has(b.id)
+        setSelectedBenchmarks(benchmarks().filter(isSelected))
     })
 
-    const firstBenchmark = benchmarks()?.[0]
-    if (firstBenchmark) {
-        setSelectedBenchmark(firstBenchmark)
-    }
-
-    const chartData = () => chartDataForBenchmark(selectedBenchmark())
+    const chartData = () => chartDataForBenchmark(selectedBenchmarks())
 
     return (
         <Page isOpen={props.isOpen}>
@@ -260,20 +264,33 @@ const BenchmarksView = (props: { isOpen: boolean }) => {
                     <div class="flex flex-row w-full items-center justify-between">
                         <div class="font-bold flex-1">Model Benchmarks</div>
                         <div>
-                            <Select
+                            <Select<{
+                                label: string,
+                                value: string,
+                                disabled: boolean
+                            }>
+                                multiple
                                 class={"w-full"}
                                 options={chartOptions()}
+                                optionValue="value"
+                                optionTextValue="label"
+                                optionDisabled="disabled"
+                                placeholder="Top Models"
                                 itemComponent={props =>
                                     <SelectItem item={props.item}>
-                                        {props.item.rawValue}
+                                        {props.item.textValue}
                                     </SelectItem>
                                 }
-                                onChange={setChartOption}
                                 value={chartOption()}
+                                onChange={setChartOption}
                             >
                                 <SelectTrigger>
-                                    <SelectValue<string>>
-                                        {state => state.selectedOption()}
+                                    <SelectValue<{
+                                        label: string,
+                                        value: string,
+                                        disabled: boolean
+                                    }> class="flex flex-wrap space-x-2 mr-2">
+                                        {state => <MultiSelectTrigger options={state.selectedOptions()} />}
                                     </SelectValue>
                                 </SelectTrigger>
                                 <SelectContent />
@@ -281,12 +298,13 @@ const BenchmarksView = (props: { isOpen: boolean }) => {
                         </div>
                     </div>
                     <div class="relative w-full">
-                        <Show when={chartOption() === "Top Models"}>
+                        <Show when={chartOption().length === 0}>
                             <TopModelsChart />
                         </Show>
-                        <Show when={chartOption() !== "Top Models"}>
+                        <Show when={chartOption().length > 0}>
                             <Chart
-                                title={chartOption()}
+                                benchmarks={Array.from(new Set(chartData().map(c => c.benchmark_name)))}
+                                models={Array.from(new Set(chartData().map(c => c.model_name)))}
                                 data={chartData()}
                             />
                         </Show>
@@ -333,30 +351,29 @@ const BenchmarksView = (props: { isOpen: boolean }) => {
                         </For>
                     </Accordion>
                 </div>
-                <Show when={selectedBenchmark() !== null} fallback={"no selected benchmark"}>
+                <Show when={selectedBenchmarks().length > 0} fallback={"no selected benchmark"}>
                     <div>
                         <div class="flex flex-row items-center justify-between mb-4">
                             <div class="font-bold">
-                                Info for {challengeById(selectedBenchmark()?.challengeId || "")?.title || "Unknown"}:
+                                Info for {challengeById(selectedBenchmarks()?.[0]?.challengeId || "")?.title || "Unknown"}:
                             </div>
-                            <Button onClick={() => runBenchmark(selectedBenchmark()!)}>Run Benchmarks</Button>
                         </div>
                         <table class="w-full">
                             <thead>
                                 <tr>
                                     <td>
                                     </td>
-                                    <For each={selectedBenchmark()!.models}>
+                                    <For each={selectedBenchmarks()?.[0].models}>
                                         {m => <td class="text-right">{modelById(m.modelId)?.name || "Unknown Model"}</td>}
                                     </For>
                                 </tr>
                             </thead>
                             <tbody>
-                                <For each={getBenchmarkResultsGroupedByData(selectedBenchmark()!)}>
+                                <For each={getBenchmarkResultsGroupedByData(selectedBenchmarks()?.[0]!)}>
                                     {(row, rowIndex) =>
                                         <tr>
                                             <td class="text-slate-400">{rowIndex()}</td>
-                                            <For each={selectedBenchmark()!.models}>
+                                            <For each={selectedBenchmarks()?.[0]!.models}>
                                                 {m => {
                                                     const col = row.find(r => r.modelId === m.modelId)
                                                     if (!col) {
