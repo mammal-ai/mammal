@@ -7,6 +7,13 @@ import { Button } from "../shadcn/components/Button";
 import { Select, SelectTrigger, SelectItem, SelectContent, SelectValue } from "../shadcn/components/Select"
 import BenchmarkDialog from "../components/BenchmarkDialog";
 import { models } from "../state/ModelProvidersContext";
+import {
+    Accordion,
+    AccordionItem,
+    AccordionTrigger,
+    AccordionContent
+} from "../shadcn/components/Accordion";
+import { Pen, Trash2 } from "lucide-solid";
 
 const modelById = (id: string) => {
     return models().find(m => m.id === id)
@@ -282,35 +289,50 @@ const BenchmarksView = (props: { isOpen: boolean }) => {
                                 title={chartOption()}
                                 data={chartData()}
                             />
-                            {JSON.stringify(chartData())}
                         </Show>
                     </div>
                 </div>
-                <div class="flex flex-col items-center bg-background rounded-md border px-6 py-4">
-                    {JSON.stringify(challenges())}
-                    <div>
-                        as
-                    </div>
-                    <For each={challenges()}>
-                        {challenge =>
-                            <div class="flex flex-row justify-between w-full">
-                                <div>
-                                    {challenge.title}
-                                </div>
-                                <div>
-                                    <Button onClick={() => { setSelectedChallengeId(challenge.id); setShowNewBenchmarkDialog(true) }}>Benchmark</Button>
-                                </div>
-                            </div>
-                        }
-                    </For>
+                <div class="flex flex-col items-center space-y-2 bg-background rounded-md border px-6 py-4">
+
+                    <Accordion collapsible class="w-full">
+                        <For each={challenges()}>
+                            {challenge =>
+                                <AccordionItem value={challenge.id} class="border-none">
+                                    <AccordionTrigger class="font-bold">{challenge.title}</AccordionTrigger>
+                                    <AccordionContent>
+                                        <div class="flex flex-col w-full">
+                                            <div class="mr-4 w-full">
+                                                <Button
+                                                    class="w-full"
+                                                    onClick={() => { setSelectedChallengeId(challenge.id); setShowNewBenchmarkDialog(true) }}
+                                                >
+                                                    Benchmark Against New Data
+                                                </Button>
+
+                                                <For each={benchmarks().filter(b => b.challengeId === challenge.id)}>
+                                                    {benchmark =>
+                                                        <div class="flex flex-row items-center justify-between w-full my-1 group">
+                                                            {benchmark.title}
+                                                            <div class="flex flex-row space-x-1 group-hover:visible invisible">
+                                                                <Button size={"icon"} variant={"outline"} onClick={() => { }}>
+                                                                    <Pen />
+                                                                </Button>
+                                                                <Button size={"icon"} variant={"outline"} onClick={() => { }}>
+                                                                    <Trash2 />
+                                                                </Button>
+                                                                <Button variant={"outline"} onClick={() => { }}>View</Button>
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                </For>
+                                            </div>
+                                        </div>
+                                    </AccordionContent>
+                                </AccordionItem>
+                            }
+                        </For>
+                    </Accordion>
                 </div>
-                {/* 
-                <div class="flex flex-col items-center bg-background rounded-md border px-6 py-4">
-                    {JSON.stringify(benchmarks())}
-                </div>
-                <div class="flex flex-col items-center bg-background rounded-md border px-6 py-4">
-                    {JSON.stringify(results())}
-                </div> */}
                 <Show when={selectedBenchmark() !== null} fallback={"no selected benchmark"}>
                     <div>
                         <div class="flex flex-row items-center justify-between mb-4">
@@ -318,9 +340,6 @@ const BenchmarksView = (props: { isOpen: boolean }) => {
                                 Info for {challengeById(selectedBenchmark()?.challengeId || "")?.title || "Unknown"}:
                             </div>
                             <Button onClick={() => runBenchmark(selectedBenchmark()!)}>Run Benchmarks</Button>
-                        </div>
-                        <div>
-                            {JSON.stringify(selectedBenchmark())}
                         </div>
                         <table class="w-full">
                             <thead>

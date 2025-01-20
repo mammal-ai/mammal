@@ -2,6 +2,7 @@ import { createSignal } from "solid-js";
 import IconSidebar from "./components/IconSidebar";
 import { Bot, ChartColumn, Folders, HardDriveUpload, MessageSquareText } from "lucide-solid";
 import "./App.css";
+import { ToastRegion, ToastList } from "./shadcn/components/Toast"
 import MessagesView from "./views/MessagesView";
 import ModelsView from "./views/ModelsView";
 import OrganizerView from "./views/OrganizerView";
@@ -46,6 +47,9 @@ function App() {
           <ModelsView isOpen={activeItem() === 4} />
         </Page>
       </div>
+      <ToastRegion>
+        <ToastList />
+      </ToastRegion>
     </main>
   );
 }
