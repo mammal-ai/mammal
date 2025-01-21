@@ -30,7 +30,7 @@ const debounce = (fn: () => void, ms: number) => {
 };
 
 interface ChatBoxProps {
-  show: boolean
+  show: boolean;
   onSubmit: (msg: string) => void;
   onAttach: (msg: string) => void;
 }
@@ -45,10 +45,10 @@ const ChatBox = (props: ChatBoxProps) => {
     }
     $textareaRef.style.height = DEFAULT_HEIGHT;
     requestAnimationFrame(() => {
-      const maxHeight = window.innerHeight / 3
+      const maxHeight = window.innerHeight / 3;
       const idealHeight = Math.min($textareaRef.scrollHeight, maxHeight);
       $textareaRef.style.height = idealHeight + "px";
-    })
+    });
   }, 10);
   fixHeight();
 
@@ -59,7 +59,7 @@ const ChatBox = (props: ChatBoxProps) => {
     props.onSubmit(msg.replace(/\n$/, ""));
     $textareaRef.value = "";
     setInput("");
-  }
+  };
 
   const keyUpHandler = (e: KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -67,29 +67,31 @@ const ChatBox = (props: ChatBoxProps) => {
       submitHandler((e.target as HTMLTextAreaElement).value);
     }
     fixHeight();
-  }
+  };
 
   return (
     <form
       class="absolute left-0 right-0 bottom-0 px-10 pb-6 z-10"
       style={{
         transform: props.show ? "translateY(0)" : "translateY(100%)",
-        transition: "transform 120ms ease-in-out"
+        transition: "transform 120ms ease-in-out",
       }}
       onSubmit={() => submitHandler(input())}
       onFocus={() => setIsFocused(true)}
       onBlur={() => setIsFocused(false)}
     >
-      <div class={`left-0 bottom-0 w-full flex flex-col z-20 bg-background p-4 shadow-lg
+      <div
+        class={`left-0 bottom-0 w-full flex flex-col z-20 bg-background p-4 shadow-lg
       rounded-xl border bg-card text-card-foreground shadow cursor-text
-      ${(isFocused() ? "ring-2 ring-ring ring-offset-2" : "")}`}
-        onClick={() => $textareaRef.focus()}>
+      ${isFocused() ? "ring-2 ring-ring ring-offset-2" : ""}`}
+        onClick={() => $textareaRef.focus()}
+      >
         <textarea
           // @ts-ignore
           ref={$textareaRef}
           class="bg-transparent focus:outline-none px-1 mb-1"
           value={input()}
-          onChange={e => {
+          onChange={(e) => {
             setInput(e.currentTarget.value);
             fixHeight();
           }}
@@ -101,20 +103,23 @@ const ChatBox = (props: ChatBoxProps) => {
           <ModelSelectorDropdown />
           <ModelParametersDropdown />
           <div class="flex-1" />
-          <Button type="button" variant="ghost" size="icon"
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
             style={{
               transition: "transform 300ms ease, opacity 300ms ease",
               ...(isReadyForDrop()
                 ? {
-                  // can't include `scale` here because it will override the `active:scale-90` class
-                  opacity: "1",
-                  pointerEvents: "auto",
-                }
+                    // can't include `scale` here because it will override the `active:scale-90` class
+                    opacity: "1",
+                    pointerEvents: "auto",
+                  }
                 : {
-                  transform: "scale(0.4)",
-                  opacity: "0",
-                  pointerEvents: "none",
-                }),
+                    transform: "scale(0.4)",
+                    opacity: "0",
+                    pointerEvents: "none",
+                  }),
             }}
             onClick={async () => {
               const file = await open({
@@ -127,7 +132,8 @@ const ChatBox = (props: ChatBoxProps) => {
                 const message = getAttachmentTemplate(file, doc);
                 props.onAttach(message);
               }
-            }}>
+            }}
+          >
             <Paperclip />
           </Button>
           <Button type="submit" variant="outline">
@@ -136,7 +142,7 @@ const ChatBox = (props: ChatBoxProps) => {
           </Button>
         </div>
       </div>
-    </form >
+    </form>
   );
 };
 export default ChatBox;
