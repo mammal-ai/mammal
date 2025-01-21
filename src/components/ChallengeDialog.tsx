@@ -255,7 +255,7 @@ const ChallengeDialog = (props: ChallengeDialogProps) => {
                 </DialogHeader>
 
 
-                <div class="flex-1 overflow-y-scroll space-y-4 p-2">
+                <div class="flex-1 overflow-y-auto space-y-4 p-2">
                     <div class="flex flex-row items-center space-x-1">
                         <div class="flex-0">
                             Title:
@@ -264,7 +264,7 @@ const ChallengeDialog = (props: ChallengeDialogProps) => {
                             <TextField value={benchmarkTitle()} setValue={setBenchmarkTitle} />
                         </div>
                     </div>
-                    <div class="block flex flex-col space-y-2 overflow-y-scroll">
+                    <div class="block flex flex-col space-y-2 overflow-hidden">
                         <div class="flex flex-row items-center bg-background rounded-md border px-4 py-2">
                             <Accordion collapsible class="w-full">
                                 <AccordionItem value="item-1" class="border-none">
