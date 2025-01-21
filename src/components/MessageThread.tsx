@@ -8,7 +8,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "../shadcn/components/Tooltip";
-import { addChallenge, Challenge } from "../state/BenchmarkContext";
+import { addChallenge, UnsavedChallenge } from "../state/BenchmarkContext";
 import ChallengeDialog from "./ChallengeDialog";
 
 type AttachmentGroup = {
@@ -78,7 +78,7 @@ const MessageThread = (props: MessageThreadProps) => {
   >(null);
   const messageGroups = () => groupAttachments(props.messages);
 
-  const onSaveChallenge = async (challenge: Challenge) => {
+  const onSaveChallenge = async (challenge: UnsavedChallenge) => {
     addChallenge(challenge);
     setUseAsChallengeTreeId(null);
   };

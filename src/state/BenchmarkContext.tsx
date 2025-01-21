@@ -14,6 +14,16 @@ import {
   ToastTitle,
 } from "../shadcn/components/Toast";
 
+const hash = (obj: any) => {
+    const str = JSON.stringify(obj);
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = (hash << 5) - hash + char;
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    return hash;
+}
 type MetricType = "EXACT" | "CONTAINS" | "MATCH";
 
 type Metric = {
@@ -38,6 +48,7 @@ export type Result = {
   modelId: string;
   challengeId: string;
   data: { [key: string]: string };
+  dataHash: number;
   resultContent: string;
   score: number; // [0:1]
 };
@@ -111,18 +122,23 @@ const removeBenchmark = (id: string) => {
   setBenchmarks(benchmarks().filter((b) => b.id !== id));
 };
 
-const addResult = (result: Result) => {
+const addResult = (result: Omit<Result, "dataHash">) => {
+  const dataHash = hash(JSON.stringify(result.data))
+  const newResult: Result = {
+    ...result,
+    dataHash
+  }
   // ensure not duplicate result
   const duplicate = results().find(
     (r) =>
-      r.challengeId === result.challengeId &&
-      r.modelId === result.modelId &&
-      JSON.stringify(r.data) === JSON.stringify(result.data)
+      r.challengeId === newResult.challengeId &&
+      r.modelId === newResult.modelId &&
+      r.dataHash === newResult.dataHash
   );
   if (duplicate) {
     throw "Cannot add duplicate result (yet...)";
   }
-  setResults([...results(), result]);
+  setResults([...results(), newResult]);
 };
 
 const scoreValue = (
