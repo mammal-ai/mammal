@@ -424,7 +424,7 @@ const BenchmarksView = (props: { isOpen: boolean }) => {
             </For>
           </Accordion>
         </div>
-        <Show
+        {/* <Show
           when={selectedBenchmarks().length > 0}
           fallback={"no selected benchmark"}
         >
@@ -478,7 +478,7 @@ const BenchmarksView = (props: { isOpen: boolean }) => {
               </tbody>
             </table>
           </div>
-        </Show>
+        </Show> */}
       </div>
     </Page>
   );
