@@ -136,7 +136,7 @@ const ChatBox = (props: ChatBoxProps) => {
           >
             <Paperclip />
           </Button>
-          <Button type="submit" variant="outline">
+          <Button variant="outline" onClick={() => submitHandler(input())}>
             <Send />
             Send
           </Button>
