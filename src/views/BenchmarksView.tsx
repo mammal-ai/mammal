@@ -7,6 +7,7 @@ import {
   Benchmark,
   benchmarks,
   challenges,
+  removeBenchmark,
   Result,
   results,
   runBenchmark,
@@ -361,8 +362,8 @@ const BenchmarksView = (props: { isOpen: boolean }) => {
         <div class="flex flex-col items-center space-y-2 bg-background rounded-md border px-6 py-4">
           <Accordion collapsible class="w-full">
             <For each={challenges()}>
-              {(challenge) => (
-                <AccordionItem value={challenge.id} class="border-none">
+              {(challenge, i) => (
+                <AccordionItem value={challenge.id} class={challenges().length - 1 === i() ? "border-b-0" : ""}>
                   <AccordionTrigger class="font-bold">
                     {challenge.title}
                   </AccordionTrigger>
@@ -398,7 +399,13 @@ const BenchmarksView = (props: { isOpen: boolean }) => {
                                 <Button
                                   size={"icon"}
                                   variant={"outline"}
-                                  onClick={() => {}}
+                                  onClick={async () => {
+                                    const sure = await confirm(
+                                      "Are you sure you want to delete this benchmark?"
+                                    );
+                                    if (!sure) return;
+                                    removeBenchmark(benchmark.id);
+                                  }}
                                 >
                                   <Trash2 />
                                 </Button>
