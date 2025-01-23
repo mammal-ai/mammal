@@ -1,12 +1,14 @@
+import { Lightbulb } from "lucide-solid";
 import { Page } from "../components/Page";
 
 const OrganizerView = (props: { isOpen: boolean }) => {
   return (
     <Page isOpen={props.isOpen}>
-      <div class="mx-auto min-w-[36rem] max-w-[48rem] p-6 mt-2">
-        <div class="flex flex-row items-center justify-between mb-2">
-          <span class="font-bold text-2xl">Organizer</span>
-        </div>
+      <div class="h-full w-full flex flex-col items-center justify-center text-gray-400">
+        <Lightbulb class="w-64 h-64" />
+        <span class="font-bold text-2xl mt-6">
+          Organizer is still only an idea...
+        </span>
       </div>
     </Page>
   );
