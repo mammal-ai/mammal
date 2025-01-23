@@ -307,39 +307,41 @@ const BenchmarksView = (props: { isOpen: boolean }) => {
           <div class="flex flex-row w-full items-center justify-between">
             <div class="font-bold flex-1">Model Benchmarks</div>
             <div>
-              <Select<{
-                label: string;
-                value: string;
-                disabled: boolean;
-              }>
-                multiple
-                class={"w-full"}
-                options={chartOptions()}
-                optionValue="value"
-                optionTextValue="label"
-                optionDisabled="disabled"
-                placeholder="Top Models"
-                itemComponent={(props) => (
-                  <SelectItem item={props.item}>
-                    {props.item.textValue}
-                  </SelectItem>
-                )}
-                value={chartOption()}
-                onChange={setChartOption}
-              >
-                <SelectTrigger>
-                  <SelectValue<{
-                    label: string;
-                    value: string;
-                    disabled: boolean;
-                  }> class="flex flex-wrap space-x-2 mr-2">
-                    {(state) => (
-                      <MultiSelectTrigger options={state.selectedOptions()} />
-                    )}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent />
-              </Select>
+              <Show when={chartOption().length > 0}>
+                <Select<{
+                  label: string;
+                  value: string;
+                  disabled: boolean;
+                }>
+                  multiple
+                  class={"w-full"}
+                  options={chartOptions()}
+                  optionValue="value"
+                  optionTextValue="label"
+                  optionDisabled="disabled"
+                  placeholder="Top Models"
+                  itemComponent={(props) => (
+                    <SelectItem item={props.item}>
+                      {props.item.textValue}
+                    </SelectItem>
+                  )}
+                  value={chartOption()}
+                  onChange={setChartOption}
+                >
+                  <SelectTrigger>
+                    <SelectValue<{
+                      label: string;
+                      value: string;
+                      disabled: boolean;
+                    }> class="flex flex-wrap space-x-2 mr-2">
+                      {(state) => (
+                        <MultiSelectTrigger options={state.selectedOptions()} />
+                      )}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent />
+                </Select>
+              </Show>
             </div>
           </div>
           <div class="relative w-full">
