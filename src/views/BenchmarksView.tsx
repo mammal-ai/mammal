@@ -159,7 +159,7 @@ const seriesFromProps = (props: ChartProps) => {
         const result = props.data.find(
           (d) => d.benchmark_name === b && d.model_name === m
         );
-        return result ? result.score * 100 : 0;
+        return result ? Math.round(result.score * 1000) / 10 : 0;
       }),
     };
   });
@@ -307,7 +307,7 @@ const BenchmarksView = (props: { isOpen: boolean }) => {
           <div class="flex flex-row w-full items-center justify-between">
             <div class="font-bold flex-1">Model Benchmarks</div>
             <div>
-              <Show when={chartOption().length > 0}>
+              <Show when={chartOptions().length > 0}>
                 <Select<{
                   label: string;
                   value: string;
