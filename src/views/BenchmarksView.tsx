@@ -69,7 +69,7 @@ const TopModelsChart = () => {
       colors: ["transparent"],
     },
     xaxis: {
-      categories: ["MMLU", "GPQA", "Hellaswag", "Arc", "Lmarena"],
+      categories: ["MMLU-Pro", "GPQA Diamond", "MATH"],
     },
     yaxis: {
       // title: {
@@ -93,19 +93,19 @@ const TopModelsChart = () => {
   const [series] = createSignal([
     {
       name: "GPT-4o",
-      data: [44, 55, 57, 56, 61],
+      data: [72.6, 49.9, 74.6],
     },
     {
       name: "Sonnet 3.5",
-      data: [56, 65, 61, 58, 57],
+      data: [78.0, 65.0, 78.3],
     },
     {
-      name: "Gemini 1206",
-      data: [35, 41, 36, 26, 45],
+      name: "Gemini 1.5 Pro 002",
+      data: [75.8, 59.1, 86.5],
     },
     {
       name: "Llama 3.3 405B",
-      data: [41, 36, 26, 45, 62],
+      data: [73.3, 51.1, 73.8],
     },
   ]);
 
