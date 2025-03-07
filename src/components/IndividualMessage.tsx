@@ -48,6 +48,24 @@ const highlightMessageVariables = (msg: string) => {
   );
 };
 
+const renderThinking = (
+  msg: string,
+  md: { render: (msg: string) => string }
+) => {
+  console.log("renderFunction", md);
+  const trimmed = msg.trim();
+  if (trimmed.startsWith("<think>")) {
+    const [thinking, rest] = trimmed
+      .slice("<think>".length)
+      .split("</think>", 2);
+    return (
+      `<div class="__thinking__">\n\n${md.render(thinking)}\n\n</div>` +
+      md.render(rest)
+    );
+  }
+  return md.render(msg);
+};
+
 const md = new Remarkable({
   typographer: true,
   html: false,
@@ -359,7 +377,10 @@ const IndividualMessage = (props: IndividualMessageProps) => {
 
   const [highlightedMd] = createResource<string, string, unknown>(
     () => props.message,
-    debounce<string>((source: string) => mdWithHighlights.render(source), 120)
+    debounce<string>(
+      (source: string) => renderThinking(source, mdWithHighlights),
+      120
+    )
   );
 
   return (
@@ -374,7 +395,7 @@ const IndividualMessage = (props: IndividualMessageProps) => {
           <MarkdownBody
             message={messageData() || null}
             class={roleClasses().message}
-            innerHTML={md.render(props.message)}
+            innerHTML={renderThinking(props.message, md)}
             onRegenerate={props.onRegenerate}
             onEdit={props.onEdit}
             onUseAsChallenge={props.onUseAsChallenge}

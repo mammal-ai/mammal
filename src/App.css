@@ -13,3 +13,6 @@
   cursor: pointer;
   user-select: none;
 }
+.__thinking__ {
+  @apply rounded p-4 mb-4 opacity-70 text-sm bg-slate-200 rounded-lg;
+}
