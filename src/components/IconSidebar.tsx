@@ -13,6 +13,7 @@ const SIDEBAR_WIDTH = "3rem";
 interface SidebarItemProps {
   title: string;
   icon: (props: any) => JSX.Element;
+  badge: boolean;
 }
 
 interface SidebarProps {
@@ -34,7 +35,7 @@ const IconSidebar = ({ items, activeItem, setActiveItem }: SidebarProps) => {
           <TooltipTrigger>
             <button
               class={cn(
-                `flex items-center justify-center w-8 h-8 p-2 m-1 rounded border-none shadow-none hover:bg-gray-200 hover:text-gray-700 active:scale-95 active:bg-gray-300`,
+                `relative flex items-center justify-center w-8 h-8 p-2 m-1 rounded border-none shadow-none hover:bg-gray-200 hover:text-gray-700 active:scale-95 active:bg-gray-300`,
                 activeItem() === index
                   ? " text-gray-800 bg-gray-200"
                   : " text-gray-500"
@@ -42,6 +43,9 @@ const IconSidebar = ({ items, activeItem, setActiveItem }: SidebarProps) => {
               onClick={() => setActiveItem(index)}
             >
               <item.icon class="text" />
+              {item.badge && (
+                <span class="absolute top-0 right-0 w-2 h-2 bg-blue-500 rounded-full" />
+              )}
             </button>
           </TooltipTrigger>
           <TooltipContent>{item.title}</TooltipContent>

@@ -4,7 +4,7 @@ import {
   Provider,
   models,
   providers,
-  removeProvider,
+  removeProvider as unguardedRemoveProvider,
 } from "../state/ModelProvidersContext";
 import { Dog, Edit, Sparkles, Trash2 } from "lucide-solid";
 import {
@@ -53,6 +53,19 @@ const DeprecatedDefunctOrPreview = (props: { model: Model }) => (
   </>
 );
 
+const sureGuard =
+  (sureMessage: string, fn: (...args: any[]) => any) =>
+  async (...args: any[]) => {
+    if (await confirm(sureMessage)) {
+      return fn(...args);
+    }
+  };
+
+const removeProvider = sureGuard(
+  "Are you sure you want to remove this provider and all its models?\nThis action cannot be undone.",
+  unguardedRemoveProvider
+);
+
 const topModels = [
   "Gemini Exp 1206 (Preview)",
   "Gemini 2.0 Flash",
@@ -85,7 +98,7 @@ const ModelProviderListView = () => {
                   variant={"ghost"}
                   class="w-7 h-7 p-0"
                   size={"sm"}
-                  onClick={() => removeProvider(provider.id)}
+                  onClick={() => removeProvider(provider.uuid)}
                 >
                   <Trash2 class="h-4 w-4" />
                   <span class="sr-only">Toggle</span>
@@ -111,7 +124,7 @@ const ModelProviderListView = () => {
                     <TableBody>
                       <For
                         each={models().filter(
-                          (m) => m.providerId === provider.id
+                          (m) => m.providerId === provider.uuid
                         )}
                       >
                         {(model) => (

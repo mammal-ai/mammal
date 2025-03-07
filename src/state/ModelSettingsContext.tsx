@@ -61,7 +61,9 @@ createEffect(() => {
 createEffect(() => {
   const newModel = model();
   if (newModel) {
-    setProvider(providers().find((p) => p.id === newModel.providerId) || null);
+    setProvider(
+      providers().find((p) => p.uuid === newModel.providerId) || null
+    );
   }
 });
 

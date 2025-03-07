@@ -31,6 +31,7 @@ export const modelTypeFromString = (modelType: string) => {
 };
 
 export type Provider = {
+  uuid: string;
   id: string;
   name: string;
   type: ModelType;
@@ -38,7 +39,7 @@ export type Provider = {
   apiKey: string;
   icon?: string;
 };
-type UnsavedProvider = Omit<Provider, "id">;
+type UnsavedProvider = Omit<Provider, "uuid">;
 
 type ModelMeta = {
   productionReady?: boolean;
@@ -52,14 +53,14 @@ type ModelMeta = {
 };
 
 export type Model = {
-  id: string;
+  uuid: string;
   name: string;
   model: string;
   providerId: string;
   available: boolean;
   meta?: ModelMeta;
 };
-type UnsavedModel = Omit<Model, "id">;
+type UnsavedModel = Omit<Model, "uuid">;
 
 const initialProviders = localStorage.getItem("providers")
   ? JSON.parse(localStorage.getItem("providers")!)
@@ -74,21 +75,21 @@ const [models, setModels] = createSignal<Model[]>(initialModels);
 const addProvider = (provider: UnsavedProvider) =>
   new Promise<string>((resolve) => {
     setProviders((providers) => {
-      const id = crypto.randomUUID();
-      const newProviders = [...providers, { id, ...provider }];
+      const uuid = crypto.randomUUID();
+      const newProviders = [...providers, { uuid, ...provider }];
       localStorage.setItem("providers", JSON.stringify(newProviders));
-      resolve(id);
+      resolve(uuid);
       return newProviders;
     });
   });
 
-const removeProvider = (id: string) => {
+const removeProvider = (uuid: string) => {
   // First cascade delete models
   models()
-    .filter((m) => m.providerId === id)
-    .forEach((m) => removeModel(m.id));
+    .filter((m) => m.providerId === uuid)
+    .forEach((m) => removeModel(m.uuid));
   setProviders((providers) => {
-    const newProviders = providers.filter((p) => p.id !== id);
+    const newProviders = providers.filter((p) => p.uuid !== uuid);
     localStorage.setItem("providers", JSON.stringify(newProviders));
     return newProviders;
   });
@@ -97,17 +98,17 @@ const removeProvider = (id: string) => {
 const addModel = (model: UnsavedModel) =>
   new Promise<string>((resolve) => {
     setModels((models) => {
-      const id = crypto.randomUUID();
-      const newModels = [...models, { id, ...model }];
+      const uuid = crypto.randomUUID();
+      const newModels = [...models, { uuid, ...model }];
       localStorage.setItem("models", JSON.stringify(newModels));
-      resolve(id);
+      resolve(uuid);
       return newModels;
     });
   });
 
 const removeModel = (id: string) => {
   setModels((models) => {
-    const newModels = models.filter((m) => m.id !== id);
+    const newModels = models.filter((m) => m.uuid !== id);
     localStorage.setItem("models", JSON.stringify(newModels));
     return newModels;
   });

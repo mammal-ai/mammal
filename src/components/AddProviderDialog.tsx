@@ -15,17 +15,22 @@ import {
   addModel,
   modelTypeFromString,
 } from "../state/ModelProvidersContext";
-import knownProviders from "../assets/providers.json";
+import {
+  getModels,
+  knownProviderList,
+} from "../state/UpdatedModelProviderInfo.tsx";
 
 const CUSTOM_PROVIDER_DEFAULT = "Custom Provider";
-
-const providerNames = [
+// known providers is updated after initial render, so we need to use a signal to get the list
+const providerNames = () => [
   CUSTOM_PROVIDER_DEFAULT,
-  ...knownProviders.map((p) => p.name).sort(),
+  ...knownProviderList()
+    .map((p) => p.name)
+    .sort(),
 ];
 
 const getEndpointByProvider = (provider: string) => {
-  const knownProvider = knownProviders.find((p) => p.name === provider);
+  const knownProvider = knownProviderList().find((p) => p.name === provider);
   return knownProvider?.endpoint;
 };
 
@@ -54,11 +59,17 @@ const AddProviderDialog = (props: AddProviderFormProps) => {
 
   const onAddProvider = async () => {
     const name = isCustomProvider() ? providerName() : selectedProvider();
-    const p = knownProviders.find((p) => p.name === name);
+    const p = knownProviderList().find((p) => p.name === name);
 
-    const providerId = await addProvider({
+    if (!p) {
+      console.error("Provider not found");
+      return;
+    }
+
+    const providerUuid = await addProvider({
+      id: p.id,
       name,
-      type: modelTypeFromString(p?.type || "Unknown"),
+      type: modelTypeFromString(p?.vercelSdkType || "Unknown"),
       apiKey: apiKey(),
       endpoint: isCustomProvider()
         ? endpoint()
@@ -66,18 +77,19 @@ const AddProviderDialog = (props: AddProviderFormProps) => {
       ...(p?.icon ? { icon: p.icon } : {}),
     });
 
-    if (providerId === null) {
+    if (providerUuid === null) {
       console.error("Failed to add provider");
       return;
     }
     setApiKey("");
 
-    p?.models.forEach((m) => {
+    const models = await getModels(p.id);
+    models.forEach((m) => {
       addModel({
         name: m.name,
         model: m.model,
         available: m.available,
-        providerId,
+        providerId: providerUuid,
         meta: m.meta,
       });
     });
@@ -118,7 +130,7 @@ const AddProviderDialog = (props: AddProviderFormProps) => {
           <Select
             class={"w-full"}
             placeholder="Select a Provider…"
-            options={providerNames.filter((p) =>
+            options={providerNames().filter((p) =>
               providers().every((pr) => pr.name !== p)
             )}
             itemComponent={(props) => (

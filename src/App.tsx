@@ -1,4 +1,5 @@
-import { createSignal } from "solid-js";
+import { onMount, createSignal } from "solid-js";
+import { createStore } from "solid-js/store";
 import IconSidebar from "./components/IconSidebar";
 import {
   Bot,
@@ -15,32 +16,52 @@ import OrganizerView from "./views/OrganizerView";
 import DeploymentsView from "./views/DeploymentsView";
 import BenchmarksView from "./views/BenchmarksView";
 import { Page } from "./components/Page";
-
-const sidebarItems = [
-  {
-    title: "Conversations",
-    icon: MessageSquareText,
-  },
-  {
-    title: "Organize",
-    icon: Folders,
-  },
-  {
-    title: "Benchmarks",
-    icon: ChartColumn,
-  },
-  {
-    title: "Deployments",
-    icon: HardDriveUpload,
-  },
-  {
-    title: "Models",
-    icon: Bot,
-  },
-];
+import { checkForNewModels } from "./state/UpdatedModelProviderInfo";
 
 function App() {
   const [activeItem, setActiveItem] = createSignal(0);
+
+  const [sidebarItems, setSidebarItems] = createStore([
+    {
+      title: "Conversations",
+      icon: MessageSquareText,
+      badge: false,
+    },
+    {
+      title: "Organize",
+      icon: Folders,
+      badge: false,
+    },
+    {
+      title: "Benchmarks",
+      icon: ChartColumn,
+      badge: false,
+    },
+    {
+      title: "Deployments",
+      icon: HardDriveUpload,
+      badge: false,
+    },
+    {
+      title: "Models",
+      icon: Bot,
+      badge: false,
+    },
+  ]);
+
+  onMount(async () => {
+    console.log("Checking for new models");
+    const newModels = await checkForNewModels();
+    console.log("New models:", newModels);
+    const modelsIndex = sidebarItems.findIndex(
+      (item) => item.title === "Models"
+    );
+    if (modelsIndex === -1) {
+      console.error("Models is not found in sidebar items");
+      return;
+    }
+    setSidebarItems(modelsIndex, "badge", newModels);
+  });
 
   return (
     <main class="flex flex-row w-screen h-screen">

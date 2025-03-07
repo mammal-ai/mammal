@@ -20,25 +20,23 @@ import { model, setModel } from "../state/ModelSettingsContext";
 
 export const ModelSelectorDropdown = () => {
   const [open, setOpen] = createSignal(false);
-  const [modelId, setModelId] = createSignal<number | null>(
-    model()?.id || null
+  const [modelId, setModelId] = createSignal<string | null>(
+    model()?.uuid || null
   );
-  // const { models, providers } = useContext(ProviderContext);
-
   createEffect(() => {
     setModel(impliedModel());
   });
 
   const impliedModel = () => {
     if (modelId() !== null) {
-      return models().find((m) => m.id === modelId()) || null;
+      return models().find((m) => m.uuid === modelId()) || null;
     }
     return null;
   };
   const impliedProvider = () => {
     if (impliedModel() !== null) {
       return (
-        providers().find((p) => p.id === impliedModel()?.providerId) || null
+        providers().find((p) => p.uuid === impliedModel()?.providerId) || null
       );
     }
     return null;
@@ -92,15 +90,17 @@ export const ModelSelectorDropdown = () => {
               {(provider) => (
                 <CommandGroup heading={provider.name}>
                   <For
-                    each={models().filter((m) => m.providerId === provider.id)}
+                    each={models().filter(
+                      (m) => m.providerId === provider.uuid
+                    )}
                   >
                     {(model) => (
                       <CommandItem
                         class="bg-white"
-                        value={model.id.toString()}
+                        value={model.uuid.toString()}
                         keywords={[model.name, provider.name]}
                         onSelect={(_currentValue) => {
-                          setModelId(model.id);
+                          setModelId(model.uuid);
                           setOpen(false);
                         }}
                       >
@@ -109,7 +109,7 @@ export const ModelSelectorDropdown = () => {
                         <Check
                           class={cn(
                             "mr-2 h-4 w-4",
-                            impliedModel()?.id === model.id
+                            impliedModel()?.uuid === model.uuid
                               ? "opacity-100"
                               : "opacity-0"
                           )}

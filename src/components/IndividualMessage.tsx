@@ -52,7 +52,6 @@ const renderThinking = (
   msg: string,
   md: { render: (msg: string) => string }
 ) => {
-  console.log("renderFunction", md);
   const trimmed = msg.trim();
   if (trimmed.startsWith("<think>")) {
     const [thinking, rest] = trimmed
