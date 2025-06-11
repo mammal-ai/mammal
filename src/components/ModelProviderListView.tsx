@@ -67,10 +67,10 @@ const removeProvider = sureGuard(
 );
 
 const topModels = [
-  "Gemini Exp 1206 (Preview)",
-  "Gemini 2.0 Flash",
-  "GPT-4o",
-  "Llama 3.3 70B",
+  "Gemini 2.5 Pro",
+  "Gemini 2.5 Flash",
+  "Qwen 3 32B",
+  "Claude Sonnet 4",
 ];
 
 // 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
