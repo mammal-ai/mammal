@@ -1,4 +1,4 @@
-import { createSignal } from "solid-js";
+import { createResource, createSignal } from "solid-js";
 import { Settings } from "lucide-solid";
 import {
   Popover,
@@ -12,6 +12,8 @@ import {
   setTemperature,
   maxTokens,
   setMaxTokens,
+  provider,
+  setProviderOptions,
 } from "../state/ModelSettingsContext";
 import {
   Slider,
@@ -32,6 +34,63 @@ const scaleDown = (logTokens: number) => {
   return Math.round(18 * Math.log2(logTokens));
 };
 
+const OpenRouterSettings = ({ show }: { show: boolean }) => {
+  const modelSlug = model()?.model;
+  // const [resource, { mutate, refetch }] = createResource<
+  const [resource] = createResource<{ name: string; orProviderId: string }[]>(
+    () => {
+      if (!show || !modelSlug) {
+        return [];
+      }
+      return fetch(`https://openrouter.ai/api/v1/models/${modelSlug}/endpoints`)
+        .then((res) => res.json())
+        .then((data) => {
+          const options = Array.isArray(data?.data.endpoints)
+            ? data?.data.endpoints.map((endpoint: any) => ({
+                orProviderId: endpoint?.tag,
+                name: endpoint?.provider_name,
+              }))
+            : [];
+          // TODO: Retain values...
+          setProviderOptions(options[0]);
+          return options;
+        });
+    },
+    { initialValue: [] }
+  );
+
+  // Only
+  // Allow the user to select a provider from a dropdown
+  return (
+    <div class={"flex flex-col space-y-2" + (show ? "" : " hidden")}>
+      <div class="font-bold">OpenRouter Settings</div>
+      <div class="text-sm text-muted-foreground">
+        Select a provider for the model.
+      </div>
+      {resource()?.length > 0 ? (
+        <select
+          class="w-full rounded border p-2"
+          onChange={(e) => {
+            const selectedProvider = resource()?.find(
+              (p) => p.orProviderId === e.currentTarget.value
+            );
+            if (selectedProvider) {
+              // Set the provider in the context
+              setProviderOptions(selectedProvider);
+            }
+          }}
+        >
+          {resource()?.map((provider) => (
+            <option value={provider.orProviderId}>{provider.name}</option>
+          ))}
+        </select>
+      ) : (
+        <p class="text-red-500">No providers found.</p>
+      )}
+    </div>
+  );
+};
+
 export const ModelParametersDropdown = () => {
   const [open, setOpen] = createSignal(false);
   const maxMaxTokensValue = () =>
@@ -42,6 +101,8 @@ export const ModelParametersDropdown = () => {
     );
   const maxTemperatureValue = () =>
     model()?.meta?.maxTemperature || DEFAULT_MAX_TEMPERATURE_VALUE;
+
+  const showOpenRouterSettings = provider()?.id === "openrouter";
 
   return (
     <Popover open={open()} onOpenChange={setOpen} placement="top">
@@ -105,6 +166,7 @@ export const ModelParametersDropdown = () => {
               <SliderThumb />
             </SliderTrack>
           </Slider>
+          <OpenRouterSettings show={showOpenRouterSettings} />
         </div>
       </PopoverContent>
     </Popover>

@@ -5,11 +5,13 @@ export enum ModelType {
   Groq,
   Google,
   OpenAi,
+  OpenRouter,
   OpenAiCompatible,
   Unknown,
 }
 
 export const modelTypeFromString = (modelType: string) => {
+  console.log(modelType);
   switch (modelType) {
     case "Anthropic":
       return ModelType.Anthropic;
@@ -21,6 +23,8 @@ export const modelTypeFromString = (modelType: string) => {
     //     return ModelType.Cohere;
     // case "Mistral":
     //     return ModelType.Mistral;
+    case "OpenRouter":
+      return ModelType.OpenRouter;
     case "OpenAi":
       return ModelType.OpenAi;
     case "OpenAiCompatible":

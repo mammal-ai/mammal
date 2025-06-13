@@ -1,16 +1,21 @@
+import { LanguageModelV1 } from "@ai-sdk/provider";
 import { createGroq } from "@ai-sdk/groq";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
-import { streamText, smoothStream } from "ai";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import { streamText, smoothStream, StreamTextResult } from "ai";
 import {
   model,
   provider,
   temperature,
   maxTokens,
+  providerOptions,
 } from "../state/ModelSettingsContext";
 import { ModelType, Provider } from "../state/ModelProvidersContext";
 import { addMessage, ChatMessageRole } from "../state/MessagesContext";
+import { toaster } from "@kobalte/core";
+import { MissingOpenRouterSettingToast } from "./MissingOpenRouterSettingToast";
 
 type LlmMessage = {
   role: ChatMessageRole;
@@ -40,6 +45,25 @@ export const llmForProvider = (provider: Provider) => {
 
     case ModelType.OpenAi:
       return createOpenAI({ apiKey: provider.apiKey });
+
+    case ModelType.OpenRouter:
+      if (!providerOptions()?.orProviderId) {
+        toaster.show(MissingOpenRouterSettingToast);
+        throw new Error(
+          "No OpenRouter provider selected. Please select a provider."
+        );
+      }
+
+      // We add the "as" type assertion here because the OpenRouter provider doesn't extend LanguageModelV1 like the others do
+      // This is a dumb type that only takes a model name, but that's all we use it for
+      return createOpenRouter({
+        apiKey: provider.apiKey,
+        extraBody: {
+          provider: {
+            only: [providerOptions().orProviderId],
+          },
+        },
+      }) as (model: string) => LanguageModelV1;
 
     case ModelType.OpenAiCompatible:
       return createOpenAI({
@@ -95,7 +119,7 @@ export const generateNewMessage = async (messageThread: LlmMessage[]) => {
 
   const llm = llmForProvider(actualProvider);
 
-  const result = streamText({
+  const result: StreamTextResult<any, any> = await streamText({
     // model: groq("llama-3.1-8b-instant"),
     // model: groq("llama3-8b-8192"),
     model: llm(actualModel.model),
@@ -111,25 +135,29 @@ export const generateNewMessage = async (messageThread: LlmMessage[]) => {
     experimental_transform: smoothStream(),
   });
 
-  result.text.then((message) => {
-    addMessage(
-      {
-        name: model()!.name,
-        role: "assistant",
-        message,
-        createdAt: new Date().toISOString(),
-        metadata: {
-          provider: actualProvider.name,
-          model: actualModel.name,
-          temperature: temperature(),
-          maxTokens: maxTokens(),
+  result.text
+    .then((message) => {
+      addMessage(
+        {
+          name: model()!.name,
+          role: "assistant",
+          message,
+          createdAt: new Date().toISOString(),
+          metadata: {
+            provider: actualProvider.name,
+            model: actualModel.name,
+            temperature: temperature(),
+            maxTokens: maxTokens(),
+          },
         },
-      },
-      parentId
-    );
-  });
+        parentId
+      );
+    })
+    .catch((error) => {
+      console.error("Error generating message:", error);
+    });
 
-  return result.toDataStreamResponse();
+  return result.toTextStreamResponse();
 };
 
 const chatApiHandler = (_url: any, options?: any) => {

@@ -20,6 +20,7 @@ import MessageThread from "../components/MessageThread";
 const MessagesView = () => {
   const { messages, isLoading, append, setMessages } = useChat({
     api: "https://hijacked_fetch_request/api/chat",
+    streamProtocol: "text",
   });
   const [open, setOpen] = createSignal(true);
   const [editId, setEditId] = createSignal<string | null>(null);

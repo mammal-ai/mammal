@@ -18,6 +18,9 @@ const [model, setModel] = createSignal<Model | null>(initialModel);
 const [provider, setProvider] = createSignal<Provider | null>(initialProvider);
 const [temperature, setTemperature] = createSignal(initialTemperature);
 const [maxTokens, setMaxTokens] = createSignal(initialMaxTokens);
+const [providerOptions, setProviderOptions] = createSignal<Record<string, any>>(
+  {}
+);
 
 createEffect(() => {
   localStorage.setItem("model", JSON.stringify(model()));
@@ -30,6 +33,9 @@ createEffect(() => {
 });
 createEffect(() => {
   localStorage.setItem("maxTokens", JSON.stringify(maxTokens()));
+});
+createEffect(() => {
+  localStorage.setItem("providerOptions", JSON.stringify(providerOptions()));
 });
 
 createEffect(() => {
@@ -67,6 +73,10 @@ createEffect(() => {
   }
 });
 
+createEffect(() => {
+  localStorage.setItem("providerOptions", JSON.stringify(providerOptions()));
+});
+
 export {
   model,
   provider,
@@ -75,4 +85,6 @@ export {
   setTemperature,
   maxTokens,
   setMaxTokens,
+  providerOptions,
+  setProviderOptions,
 };
