@@ -64,7 +64,7 @@ function App() {
   });
 
   return (
-    <main class="flex flex-row w-screen h-screen">
+    <main class="flex flex-row absolute inset-0 overflow-hidden">
       <IconSidebar
         items={sidebarItems}
         activeItem={activeItem}
