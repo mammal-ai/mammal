@@ -20,6 +20,7 @@ import { model, setModel } from "../state/ModelSettingsContext";
 
 export const ModelSelectorDropdown = () => {
   const [open, setOpen] = createSignal(false);
+  const [searchValue, setSearchValue] = createSignal("");
   const [modelId, setModelId] = createSignal<string | null>(
     model()?.uuid || null
   );
@@ -80,10 +81,13 @@ export const ModelSelectorDropdown = () => {
           <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      {/* <PopoverContent class="w-[200px] p-0"> */}
       <PopoverContent class="p-0">
         <Command>
-          <CommandInput placeholder="Search models..." />
+          <CommandInput
+            value={searchValue()}
+            onValueChange={(newValue) => setSearchValue(newValue)}
+            placeholder="Search models..."
+          />
           <CommandList>
             <CommandEmpty>No framework found.</CommandEmpty>
             <For each={providers()}>
@@ -120,27 +124,6 @@ export const ModelSelectorDropdown = () => {
                 </CommandGroup>
               )}
             </For>
-            {/* <CommandGroup heading="Google">
-                            {menuItems2.map((framework) => (
-                                <CommandItem
-                                    class="bg-white"
-                                    value={framework}
-                                    onSelect={(currentValue) => {
-                                        setModelId(currentValue === modelId() ? "" : currentValue)
-                                        setOpen(false)
-                                    }}
-                                >
-                                    {framework}
-                                    <div class="flex-1" />
-                                    <Check
-                                        class={cn(
-                                            "mr-2 h-4 w-4",
-                                            modelId() === framework ? "opacity-100" : "opacity-0"
-                                        )}
-                                    />
-                                </CommandItem>
-                            ))}
-                        </CommandGroup> */}
           </CommandList>
         </Command>
       </PopoverContent>
