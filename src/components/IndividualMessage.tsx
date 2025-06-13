@@ -367,7 +367,7 @@ const IndividualMessage = (props: IndividualMessageProps) => {
         if (debounceTrigger) {
           clearTimeout(debounceTrigger);
         }
-        debounceTrigger = setTimeout(() => {
+        debounceTrigger = window.setTimeout(() => {
           clearTimeout(debounceTrigger);
           resolve(fn(...args));
         }, ms);
